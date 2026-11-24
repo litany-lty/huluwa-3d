@@ -14,7 +14,7 @@ const XuanPaperCinemaShader = {
     uVignette: { value: 0.34 },
     uSaturation: { value: 1.08 },
     uFlash: { value: 0.0 },
-    uGrain: { value: 0.035 },
+    uGrain: { value: 0.003 },
     uResolution: { value: new THREE.Vector2(1280, 720) },
   },
   vertexShader: /* glsl */ `

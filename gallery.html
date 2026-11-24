@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>葫芦兄弟 · 3D 素材库</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js",
+        "three/addons/": "./vendor/addons/"
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #12141a; color: #eceef4; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+    #app { display: grid; grid-template-columns: 256px 1fr; width: 100%; height: 100%; }
+    #sidebar { background: #181b23; border-right: 1px solid rgba(255,255,255,0.07); display: flex; flex-direction: column; overflow: hidden; }
+    #tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 12px 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .tab { background: rgba(255,255,255,0.05); border: none; color: #a4acb9; padding: 5px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.15s; }
+    .tab.active, .tab:hover { background: #e0533c; color: #fff; }
+    #list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 3px; }
+    .item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; border: none; background: transparent; color: #cfd5e0; font-size: 13px; text-align: left; cursor: pointer; transition: 0.12s; }
+    .item:hover { background: rgba(255,255,255,0.06); }
+    .item.active { background: rgba(224,83,60,0.22); color: #fff; box-shadow: inset 0 0 0 1px rgba(224,83,60,0.55); }
+    .item img { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; background: rgba(255,255,255,0.04); flex-shrink: 0; }
+    #stage-wrap { position: relative; width: 100%; height: 100%; }
+    #canvas3d { width: 100%; height: 100%; display: block; }
+    #ref-card { position: absolute; right: 20px; bottom: 20px; width: 148px; height: 148px; border-radius: 12px; background: rgba(24,27,35,0.82); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); padding: 10px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    #ref-card img { width: 100%; height: 100%; object-fit: contain; }
+    #toolbar { position: absolute; top: 16px; right: 20px; display: flex; gap: 8px; }
+    .icon-toggle { width: 36px; height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(24,27,35,0.8); color: #dce1eb; cursor: pointer; display: grid; place-items: center; }
+    .icon-toggle.active { background: #e0533c; border-color: #e0533c; color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div id="tabs"></div>
+      <div id="list"></div>
+    </aside>
+    <main id="stage-wrap">
+      <canvas id="canvas3d"></canvas>
+      <div id="toolbar">
+        <button id="btn-spin" class="icon-toggle active" type="button" aria-label="自动旋转">↻</button>
+      </div>
+      <div id="ref-card"><img id="ref-img" alt="" /></div>
+    </main>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { MODEL_3D_MANIFEST } from './assets/Models_3D/index.js';
+    import { ASSET_PATHS } from './src/core/AssetRegistry.js';
+
+    const ORIG_SPRITE_OVERRIDES = {
+      map_mountain: './assets/Sprites_Maps/MapBG_01_葫芦山脚宣纸底.png',
+      map_cave: './assets/Sprites_Maps/MapBG_02_妖洞前殿岩彩底.png',
+      map_palace: './assets/Sprites_Maps/MapBG_03_水晶内殿暗紫底.png',
+    };
+
+    const CATEGORIES = [
+      { id: 'all', label: '全部' },
+      { id: 'heroes', label: '英雄' },
+      { id: 'enemies', label: '妖魔' },
+      { id: 'props', label: '法宝' },
+      { id: 'stages', label: '机关' },
+      { id: 'orbs', label: '灵珠' },
+      { id: 'vfx', label: '特效' },
+      { id: 'maps', label: '地形' },
+    ];
+
+    const canvas = document.getElementById('canvas3d');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x161922);
+
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    scene.add(new THREE.HemisphereLight(0xf6f4ff, 0x262a38, 1.15));
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.2);
+    keyLight.position.set(4.2, 6.5, 5.4);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x9ec5ff, 0.85);
+    fillLight.position.set(-4.5, 3.2, 3.0);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffd29d, 1.1);
+    rimLight.position.set(0.5, 4.2, -5.0);
+    scene.add(rimLight);
+
+    const pedestal = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.9, 2.05, 0.08, 48),
+      new THREE.MeshStandardMaterial({ color: 0x222736, roughness: 0.75, metalness: 0.15 })
+    );
+    pedestal.position.y = -0.04;
+    pedestal.receiveShadow = true;
+    scene.add(pedestal);
+
+    const holder = new THREE.Group();
+    scene.add(holder);
+
+    const loader = new GLTFLoader();
+    const cache = new Map();
+    const params = new URLSearchParams(window.location.search);
+    let activeCat = 'all';
+    let activeKey = params.get('asset') || 'hero1';
+    let autoSpin = params.get('spin') !== '0';
+
+    const btnSpin = document.getElementById('btn-spin');
+    btnSpin.classList.toggle('active', autoSpin);
+    btnSpin.addEventListener('click', () => {
+      autoSpin = !autoSpin;
+      btnSpin.classList.toggle('active', autoSpin);
+    });
+
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      renderer.setSize(rect.width, rect.height, false);
+      camera.aspect = rect.width / Math.max(1, rect.height);
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    async function selectAsset(key) {
+      const meta = MODEL_3D_MANIFEST[key];
+      if (!meta) return;
+      activeKey = key;
+      document.querySelectorAll('.item').forEach((el) => {
+        el.classList.toggle('active', el.dataset.key === key);
+      });
+
+      const refUrl = ORIG_SPRITE_OVERRIDES[key] || ASSET_PATHS[key] || '';
+      document.getElementById('ref-img').src = encodeURI(refUrl);
+
+      while (holder.children.length) holder.remove(holder.children[0]);
+      holder.rotation.set(0, 0, 0);
+
+      let tpl = cache.get(key);
+      if (!tpl) {
+        const gltf = await loader.loadAsync(encodeURI(`./assets/Models_3D/${meta.path}`));
+        tpl = gltf.scene;
+        cache.set(key, tpl);
+      }
+
+      const inst = tpl.clone(true);
+      const box = new THREE.Box3().setFromObject(inst);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+      const normScale = 2.4 / maxDim;
+      inst.scale.multiplyScalar(normScale);
+      box.setFromObject(inst);
+      box.getSize(size);
+      box.getCenter(center);
+      inst.position.set(-center.x, -box.min.y, -center.z);
+      holder.add(inst);
+
+      const camAngle = Number(params.get('yaw') || 24) * (Math.PI / 180);
+      const dist = 4.2;
+      const targetY = size.y * 0.48;
+      controls.target.set(0, targetY, 0);
+      camera.position.set(Math.sin(camAngle) * dist, targetY + 0.65, Math.cos(camAngle) * dist);
+      controls.update();
+      window.__GALLERY_READY_KEY__ = key;
+    }
+
+    function renderSidebar() {
+      const tabsEl = document.getElementById('tabs');
+      tabsEl.innerHTML = '';
+      for (const c of CATEGORIES) {
+        const b = document.createElement('button');
+        b.className = `tab ${c.id === activeCat ? 'active' : ''}`;
+        b.textContent = c.label;
+        b.onclick = () => {
+          activeCat = c.id;
+          renderSidebar();
+        };
+        tabsEl.appendChild(b);
+      }
+
+      const listEl = document.getElementById('list');
+      listEl.innerHTML = '';
+      for (const [key, meta] of Object.entries(MODEL_3D_MANIFEST)) {
+        if (activeCat !== 'all' && meta.category !== activeCat) continue;
+        const btn = document.createElement('button');
+        btn.className = `item ${key === activeKey ? 'active' : ''}`;
+        btn.dataset.key = key;
+        const imgUrl = ORIG_SPRITE_OVERRIDES[key] || ASSET_PATHS[key] || '';
+        btn.innerHTML = `<img src="${encodeURI(imgUrl)}" alt="" /><span>${meta.name}</span>`;
+        btn.onclick = () => selectAsset(key);
+        listEl.appendChild(btn);
+      }
+    }
+
+    renderSidebar();
+    selectAsset(activeKey);
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      if (autoSpin) holder.rotation.y += dt * 0.65;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

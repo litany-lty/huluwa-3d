@@ -217,6 +217,20 @@ export class PowersAndTrapsFX {
     return this.assets?.getTexture?.(key) ?? null;
   }
 
+  _modelOrPlane(key, color, w, h, opacity = 0.9, additive = false, pivotBottom = false) {
+    const m3d = this.assets?.instantiateModel?.(key, {
+      fitSize: Math.max(w, h),
+      centerOrigin: !pivotBottom,
+      pivotBottom,
+      opacityProxy: true,
+      initialOpacity: opacity,
+      castShadow: false,
+      receiveShadow: false,
+    });
+    if (m3d) return m3d;
+    return makeGlowPlane(this._tex(key), color, w, h, opacity, additive);
+  }
+
   // =========================================================================
   // 1. Act 1: Seal Storm & Grandpa Spiderweb Snare
   // =========================================================================
@@ -344,7 +358,7 @@ export class PowersAndTrapsFX {
     const shockGroup = new THREE.Group();
     g.add(shockGroup);
 
-    const vfxPlane = makeGlowPlane(this._tex('vfx1'), 0xffd27a, 4.8, 4.8, 0.92, true);
+    const vfxPlane = this._modelOrPlane('vfx1', 0xffd27a, 4.8, 4.8, 0.92, true);
     vfxPlane.rotation.x = -Math.PI * 0.5;
     vfxPlane.position.y = 0.08;
     shockGroup.add(vfxPlane);
@@ -493,7 +507,7 @@ export class PowersAndTrapsFX {
     const beamR = new THREE.Mesh(coneGeo, coneMat.clone());
     g.add(beamL, beamR);
 
-    const lockSigil = makeGlowPlane(this._tex('vfx2'), 0xffe46b, 3.2, 3.2, 0.92, true);
+    const lockSigil = this._modelOrPlane('vfx2', 0xffe46b, 3.2, 3.2, 0.92, true);
     g.add(lockSigil);
 
     const lockRing = new THREE.Mesh(
@@ -607,7 +621,7 @@ export class PowersAndTrapsFX {
 
     const shieldGroup = new THREE.Group();
     g.add(shieldGroup);
-    const bellSprite = makeGlowPlane(this._tex('vfx3'), 0xffe066, 3.6, 3.6, 0.85, true);
+    const bellSprite = this._modelOrPlane('vfx3', 0xffe066, 3.6, 3.6, 0.85, true);
     bellSprite.position.y = 1.15;
     shieldGroup.add(bellSprite);
 
@@ -736,14 +750,8 @@ export class PowersAndTrapsFX {
 
     // 3D Rigid-Soft Yin-Yang Sword
     const swordGroup = new THREE.Group();
-    const swordSprite = makeGlowPlane(this._tex('prop_sword'), 0xffffff, 2.0, 2.0, 1.0, false);
-    swordGroup.add(swordSprite);
-    const hilt = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, 0.65, 8),
-      new THREE.MeshStandardMaterial({ color: 0xffd15c, metalness: 0.7, roughness: 0.25 })
-    );
-    hilt.position.y = -0.65;
-    swordGroup.add(hilt);
+    const swordModel = this._modelOrPlane('prop_sword', 0xffffff, 2.2, 2.2, 1.0, false);
+    swordGroup.add(swordModel);
     g.add(swordGroup);
 
     // Twin streaming violet-cyan 3D silk ribbons (TubeGeometry unit length 1 along +Y)
@@ -788,7 +796,7 @@ export class PowersAndTrapsFX {
       cocoonGroup.add(coil);
       coils.push(coil);
     }
-    const vfxSilk = makeGlowPlane(this._tex('vfx8'), 0xd48cff, 2.8, 3.0, 0.85, true);
+    const vfxSilk = this._modelOrPlane('vfx8', 0xd48cff, 2.8, 3.0, 0.85, true);
     vfxSilk.position.set(0, 1.1, 0.16);
     cocoonGroup.add(vfxSilk);
 
@@ -856,10 +864,10 @@ export class PowersAndTrapsFX {
     );
     beamGroup.add(fireHelix);
 
-    // 3 paper-cutout VFX_04 flame tongues + 16 embers
+    // 3 volumetric 3D VFX_04 flame cones + 16 embers
     const flameCards = [];
     for (let i = 0; i < 3; i++) {
-      const c = makeGlowPlane(this._tex('vfx4'), 0xffaa33, 2.2 + i * 0.5, 2.2 + i * 0.5, 0.88, true);
+      const c = this._modelOrPlane('vfx4', 0xffaa33, 2.2 + i * 0.5, 2.2 + i * 0.5, 0.88, true);
       g.add(c);
       flameCards.push(c);
     }
@@ -938,7 +946,7 @@ export class PowersAndTrapsFX {
 
     const waveCards = [];
     for (let i = 0; i < 3; i++) {
-      const c = makeGlowPlane(this._tex('vfx5'), 0xaaf7ff, 2.2 + i * 0.45, 2.2 + i * 0.45, 0.88, true);
+      const c = this._modelOrPlane('vfx5', 0xaaf7ff, 2.2 + i * 0.45, 2.2 + i * 0.45, 0.88, true);
       g.add(c);
       waveCards.push(c);
     }
@@ -994,7 +1002,7 @@ export class PowersAndTrapsFX {
     );
     iceGroup.add(frostCone);
 
-    const blizzardCard = makeGlowPlane(this._tex('vfx7'), 0xbdf6ff, 3.8, 3.8, 0.88, true);
+    const blizzardCard = this._modelOrPlane('vfx7', 0xbdf6ff, 3.8, 3.8, 0.88, true);
     iceGroup.add(blizzardCard);
 
     const iceShards = [];
@@ -1257,7 +1265,7 @@ export class PowersAndTrapsFX {
       vortexRibbons.push(m);
     }
 
-    const vfxSwirl = makeGlowPlane(this._tex('vfx6'), 0xd47aff, 3.6, 3.6, 0.9, true);
+    const vfxSwirl = this._modelOrPlane('vfx6', 0xd47aff, 3.6, 3.6, 0.9, true);
     g.add(vfxSwirl);
 
     const vortexParticles = [];
@@ -1340,8 +1348,8 @@ export class PowersAndTrapsFX {
     const lotusGroup = new THREE.Group();
     g.add(lotusGroup);
 
-    const lotusSprite = makeGlowPlane(this._tex('prop_lotus'), 0xffffff, 2.2, 2.2, 0.95, false);
-    lotusSprite.position.y = 0.45;
+    const lotusSprite = this._modelOrPlane('prop_lotus', 0xffffff, 2.4, 2.4, 0.98, false, true);
+    lotusSprite.position.y = 0.05;
     lotusGroup.add(lotusSprite);
 
     const lotusGlow = makeGlowPlane(this.glowTex, 0xfff0a8, 4.2, 4.2, 0.72, true);
@@ -1377,14 +1385,10 @@ export class PowersAndTrapsFX {
     const orbCoreGeo = new THREE.SphereGeometry(0.18, 10, 10);
     for (let i = 0; i < 7; i++) {
       const holder = new THREE.Group();
-      const sp = makeGlowPlane(this._tex(`orb${i + 1}`), 0xffffff, 1.15, 1.15, 0.96, false);
+      const sp = this._modelOrPlane(`orb${i + 1}`, 0xffffff, 1.05, 1.05, 0.98, false);
       const halo = makeGlowPlane(this.glowTex, SEVEN_COLORS[i], 1.75, 1.75, 0.65, true);
       halo.position.z = -0.05;
-      const core = new THREE.Mesh(
-        orbCoreGeo,
-        new THREE.MeshBasicMaterial({ color: SEVEN_COLORS[i] })
-      );
-      holder.add(halo, sp, core);
+      holder.add(halo, sp);
       orbsGroup.add(holder);
       orbs.push(holder);
     }

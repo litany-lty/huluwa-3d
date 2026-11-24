@@ -15,7 +15,7 @@ No video model involved: every frame is computed in real time, and the code was 
 
 ## 内容 / What's inside
 
-- **美术风格**：立体宣纸 + 多层皮影剪纸。折纸切面的青绿山水，可形变的皮影角色，宣纸纤维与胶片颗粒后期。
+- **美术风格**：全三维 `.glb` 角色与法宝道具（1:1 还原 86 版角色神态与纹样细节，支持实时三维顶点姿态形变）+ 青绿山水 3D 舞台（原 2D 贴图亦完整保留于 `assets/Sprites_*`）。
 - **七兄弟的本领和中计都按原片复刻**：大娃陷迷魂泥潭、二娃被魔镜刺伤双目、三娃被刚柔阴阳剑缠住、四娃被冰封、五娃醉倒、六娃把显形小黄花贴到蝎子精鼻子上、七娃被妖精养大后吸走六位哥哥。
 - **四个 3D 场景**：葫芦山、迷魂谷、水晶魔殿、炼丹深渊与七色神峰。
 - **主题曲**：原旋律的国风器乐改编，片头播放，片尾升调再现。
@@ -29,7 +29,8 @@ No video model involved: every frame is computed in real time, and the code was 
 git clone https://github.com/litany-lty/huluwa-3d.git
 cd huluwa-3d
 python3 -m http.server 8765
-# 打开 http://127.0.0.1:8765/
+# 观看短片：打开 http://127.0.0.1:8765/
+# 360° 检视全部 48 项 3D 模型与原画对比：打开 http://127.0.0.1:8765/gallery.html
 ```
 
 无需 npm install，three.js r170 已放在 `vendor/`。
@@ -69,7 +70,7 @@ assets/       角色、道具、场景、特效贴图与音乐音效
 本项目是**非商业**的粉丝致敬作品，献给上海美术电影制片厂 1986 年出品的《葫芦兄弟》。
 原作角色、造型与主题曲的权利归原权利方所有。
 
-- `src/`、`tools/`、`index.html`、`style.css` 的代码以 **MIT** 协议开源。
-- `assets/` 中的素材是基于原作的二次创作，**不在 MIT 协议范围内**（见 [NOTICE](NOTICE)），仅供学习和非商业用途。如权利方认为不妥，请提 issue 联系，我会及时处理。
+- `src/`、`tools/`、`index.html`、`gallery.html`、`style.css` 的代码以 **MIT** 协议开源。
+- `assets/` 中的 2D/3D 与音频素材是基于原作的二次创作，**不在 MIT 协议范围内**（见 [NOTICE](NOTICE)），仅供学习和非商业用途。如权利方认为不妥，请提 issue 联系，我会及时处理。
 
 This is a non-commercial fan tribute. Code is MIT licensed; files in `assets/` are fan-made derivatives of the original work and are not covered by the MIT license.

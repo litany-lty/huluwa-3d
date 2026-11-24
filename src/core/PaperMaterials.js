@@ -43,17 +43,14 @@ export function createPaperStandardMaterial(opts = {}) {
   const shared = getSharedPaperTextures();
   const repeat = opts.repeat ?? null;
 
-  const grainTex = opts.grainMap ?? (repeat ? withRepeat(shared.grain, repeat) : shared.grain);
   const normalTex = opts.normalMap ?? (repeat ? withRepeat(shared.normal, repeat) : shared.normal);
-
-  const normalStrength = opts.normalStrength ?? 0.24;
-  const usePaperGrainAsMap = !opts.map && opts.usePaperGrain !== false;
+  const normalStrength = opts.normalStrength ?? 0.06;
 
   const params = {
     color: opts.color !== undefined ? new THREE.Color(opts.color) : new THREE.Color(0xf3ead8),
-    roughness: opts.roughness ?? 0.84,
-    metalness: opts.metalness ?? 0.04,
-    flatShading: opts.flatShading ?? true,
+    roughness: opts.roughness ?? 0.68,
+    metalness: opts.metalness ?? 0.06,
+    flatShading: opts.flatShading ?? false,
     side: opts.side ?? THREE.FrontSide,
     transparent: opts.transparent ?? false,
     opacity: opts.opacity ?? 1.0,
@@ -63,8 +60,6 @@ export function createPaperStandardMaterial(opts = {}) {
 
   if (opts.map) {
     params.map = opts.map;
-  } else if (usePaperGrainAsMap) {
-    params.map = grainTex;
   }
 
   if (opts.useNormalMap !== false) {
@@ -76,8 +71,8 @@ export function createPaperStandardMaterial(opts = {}) {
   }
 
   if (opts.bumpMap || opts.useBumpMap) {
-    params.bumpMap = opts.bumpMap ?? grainTex;
-    params.bumpScale = opts.bumpScale ?? 0.032;
+    params.bumpMap = opts.bumpMap ?? shared.grain;
+    params.bumpScale = opts.bumpScale ?? 0.012;
   }
 
   if (opts.emissive !== undefined) {

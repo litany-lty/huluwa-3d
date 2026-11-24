@@ -232,18 +232,18 @@ export class MountainSanctuary {
       this.group.add(flag);
     }
 
-    // Paper-cut rock cutouts + sculpted foreground mineral rocks
-    const rockTex = this.assets?.getTexture?.('stage_rock');
-    if (rockTex) {
-      const leftCutout = createShadowCutoutMesh(rockTex, 3.6, 2.8, { thickness: 0.08 });
-      leftCutout.position.set(-10.2, 1.35, 2.6);
-      leftCutout.rotation.y = 0.22;
-      this.group.add(leftCutout);
-
-      const rightCutout = createShadowCutoutMesh(rockTex, 3.8, 3.1, { thickness: 0.08 });
-      rightCutout.position.set(10.8, 1.45, 2.3);
-      rightCutout.rotation.y = -0.25;
-      this.group.add(rightCutout);
+    // 3D Mineral Crag Clusters (Stage_01 GLB)
+    const leftRock3D = this.assets?.instantiateModel?.('stage_rock', { fitHeight: 2.8, pivotBottom: true });
+    if (leftRock3D) {
+      leftRock3D.position.set(-10.2, 0.0, 2.6);
+      leftRock3D.rotation.y = 0.22;
+      this.group.add(leftRock3D);
+    }
+    const rightRock3D = this.assets?.instantiateModel?.('stage_rock', { fitHeight: 3.1, pivotBottom: true });
+    if (rightRock3D) {
+      rightRock3D.position.set(10.8, 0.0, 2.3);
+      rightRock3D.rotation.y = -0.25;
+      this.group.add(rightRock3D);
     }
 
     // Sculpted 青绿 origami rocks near valley perimeter
@@ -804,11 +804,11 @@ export class MountainSanctuary {
       pergola.add(rafter);
     }
 
-    // Subtle 1986 prop_vine cutout behind the rear posts for painterly lushness
-    const vineTex = this.assets?.getTexture?.('prop_vine');
-    if (vineTex) {
-      this._vineBackdrop = createShadowCutoutMesh(vineTex, 5.4, 3.9, { thickness: 0.04 });
-      this._vineBackdrop.position.set(0, 2.05, -0.92);
+    // 3D Seven-Color Calabash Vine (Prop_01 GLB) integrated behind the pergola posts
+    const vine3D = this.assets?.instantiateModel?.('prop_vine', { fitHeight: 3.8, pivotBottom: true });
+    if (vine3D) {
+      this._vineBackdrop = vine3D;
+      this._vineBackdrop.position.set(0, 0.12, -0.92);
       pergola.add(this._vineBackdrop);
     }
 

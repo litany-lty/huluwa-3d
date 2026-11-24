@@ -187,18 +187,16 @@ export class MistMireCanyon {
       this.group.add(rock);
     }
 
-    // Shadow-cutout rock/pillar accents framing the gorge wings
-    const rockTex = this.assets?.getTexture?.('stage_rock');
-    if (rockTex) {
-      const wingL = createShadowCutoutMesh(rockTex, 3.8, 3.2, { thickness: 0.08 });
-      wingL.position.set(-11.4, 1.5, 1.6);
+    // 3D Rock & Stalagmite Pillar Clusters framing the gorge wings (Stage_01 & Stage_02 GLB)
+    const wingL = this.assets?.instantiateModel?.('stage_rock', { fitHeight: 3.2, pivotBottom: true });
+    if (wingL) {
+      wingL.position.set(-11.4, 0.0, 1.6);
       wingL.rotation.y = 0.25;
       this.group.add(wingL);
     }
-    const pillarTex = this.assets?.getTexture?.('stage_pillar');
-    if (pillarTex) {
-      const wingR = createShadowCutoutMesh(pillarTex, 3.2, 5.4, { thickness: 0.08 });
-      wingR.position.set(11.6, 2.6, 0.8);
+    const wingR = this.assets?.instantiateModel?.('stage_pillar', { fitHeight: 5.4, pivotBottom: true });
+    if (wingR) {
+      wingR.position.set(11.6, 0.0, 0.8);
       wingR.rotation.y = -0.22;
       this.group.add(wingR);
     }
@@ -370,21 +368,11 @@ export class MistMireCanyon {
     pool.position.y = 0.01;
     mireGroup.add(pool);
 
-    // stage_mire painterly rim integration
-    const mireTex = this.assets?.getTexture?.('stage_mire');
-    if (mireTex) {
-      const mireOverlay = new THREE.Mesh(
-        new THREE.PlaneGeometry(8.2, 6.4),
-        new THREE.MeshBasicMaterial({
-          map: mireTex,
-          transparent: true,
-          opacity: 0.65,
-          depthWrite: false,
-        })
-      );
-      mireOverlay.rotation.x = -Math.PI / 2;
-      mireOverlay.position.y = 0.03;
-      mireGroup.add(mireOverlay);
+    // 3D Stone-Ringed Toxic Mire Trap Basin (Stage_03 GLB)
+    const mire3D = this.assets?.instantiateModel?.('stage_mire', { fitSize: 7.4, pivotBottom: true });
+    if (mire3D) {
+      mire3D.position.y = -0.04;
+      mireGroup.add(mire3D);
     }
 
     // Concentric swirling mud ripple rings

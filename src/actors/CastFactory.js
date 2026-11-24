@@ -41,15 +41,31 @@ export function createFullCast(scene, assets) {
   const actors = {};
 
   CAST_SPECS.forEach((spec, idx) => {
+    const model3d =
+      assets?.instantiateModel?.(spec.tex, {
+        fitHeight: spec.h,
+        pivotBottom: true,
+        bakeTransform: true,
+      }) ?? null;
+    const stealthModel3d = spec.stealthTex
+      ? assets?.instantiateModel?.(spec.stealthTex, {
+          fitHeight: spec.h,
+          pivotBottom: true,
+          bakeTransform: true,
+        }) ?? null
+      : null;
+
     const actor = new PuppetActor({
       name: spec.id,
+      model: model3d,
+      stealthModel: stealthModel3d,
       texture: assets?.getTexture?.(spec.tex) ?? null,
       stealthTexture: spec.stealthTex ? assets?.getTexture?.(spec.stealthTex) ?? null : null,
       glowTexture,
       width: spec.w,
       height: spec.h,
       auraColor: spec.aura,
-      auraOpacity: spec.auraOpacity,
+      auraOpacity: spec.auraOpacity * 0.65,
       phaseOffset: idx * 0.83,
     });
     actors[spec.id] = actor;

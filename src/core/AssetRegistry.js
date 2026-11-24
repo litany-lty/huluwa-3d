@@ -1,4 +1,69 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+export const MODEL_3D_PATHS = {
+  // Heroes & Allies
+  hero1: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_01_大娃_红娃.glb',
+  hero2: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_02_二娃_橙娃.glb',
+  hero3: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_03_三娃_黄娃.glb',
+  hero4: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_04_四娃_绿娃.glb',
+  hero5: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_05_五娃_青娃.glb',
+  hero6: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_06_六娃_蓝娃.glb',
+  hero6_stealth: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_06b_六娃_隐身态.glb',
+  hero7: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_07_七娃_紫娃.glb',
+  hero8_king: './assets/Models_3D/Characters/01_Heroes_Allies/Hero_08_葫芦小金刚.glb',
+  grandpa: './assets/Models_3D/Characters/01_Heroes_Allies/NPC_01_爷爷.glb',
+  pangolin: './assets/Models_3D/Characters/01_Heroes_Allies/NPC_02_穿山甲.glb',
+
+  // Enemies & Bosses
+  boss_centipede: './assets/Models_3D/Characters/02_Enemies_Bosses/Boss_01_蜈蚣精.glb',
+  boss_scorpion: './assets/Models_3D/Characters/02_Enemies_Bosses/Boss_02_蝎子精.glb',
+  boss_snake: './assets/Models_3D/Characters/02_Enemies_Bosses/Boss_03_金蛇精.glb',
+  enemy_toad: './assets/Models_3D/Characters/02_Enemies_Bosses/Enemy_01_蛤蟆精.glb',
+  enemy_bat: './assets/Models_3D/Characters/02_Enemies_Bosses/Enemy_02_蝙蝠精.glb',
+  enemy_wasp: './assets/Models_3D/Characters/02_Enemies_Bosses/Enemy_03_黄蜂精.glb',
+  enemy_boar: './assets/Models_3D/Characters/02_Enemies_Bosses/Enemy_04_野猪精.glb',
+
+  // Props & Treasures
+  prop_vine: './assets/Models_3D/Props/Prop_01_七色葫芦仙藤.glb',
+  prop_cauldron: './assets/Models_3D/Props/Prop_02_三足青铜炼丹炉.glb',
+  prop_lotus: './assets/Models_3D/Props/Prop_03_幽谷七色彩莲.glb',
+  prop_mirror: './assets/Models_3D/Props/Prop_04_水晶魔镜.glb',
+  prop_sword: './assets/Models_3D/Props/Prop_05_刚柔阴阳剑.glb',
+  prop_peach: './assets/Models_3D/Props/Prop_06_回血蟠桃.glb',
+
+  // Stage Obstacles
+  stage_rock: './assets/Models_3D/Stages/Stage_01_青绿剪纸奇石.glb',
+  stage_pillar: './assets/Models_3D/Stages/Stage_02_妖洞钟乳石柱.glb',
+  stage_mire: './assets/Models_3D/Stages/Stage_03_迷魂泥潭陷阱.glb',
+  stage_web_grandpa: './assets/Models_3D/Stages/Stage_04_困爷爷蛛网石柱.glb',
+  stage_door_closed: './assets/Models_3D/Stages/Stage_05_妖洞通关石门_闭.glb',
+  stage_door_open: './assets/Models_3D/Stages/Stage_05b_妖洞通关石门_开.glb',
+
+  // Spirit Orbs
+  orb1: './assets/Models_3D/Orbs/Orb_01_赤红灵珠.glb',
+  orb2: './assets/Models_3D/Orbs/Orb_02_橘橙灵珠.glb',
+  orb3: './assets/Models_3D/Orbs/Orb_03_明黄灵珠.glb',
+  orb4: './assets/Models_3D/Orbs/Orb_04_翠绿灵珠.glb',
+  orb5: './assets/Models_3D/Orbs/Orb_05_青蓝灵珠.glb',
+  orb6: './assets/Models_3D/Orbs/Orb_06_靛蓝灵珠.glb',
+  orb7: './assets/Models_3D/Orbs/Orb_07_紫红灵珠.glb',
+
+  // Volumetric 3D VFX
+  vfx1: './assets/Models_3D/VFX/VFX_01_大娃_裂地云雷震波.glb',
+  vfx2: './assets/Models_3D/VFX/VFX_02_二娃_千里眼暴击神光印.glb',
+  vfx3: './assets/Models_3D/VFX/VFX_03_三娃_铜头铁臂金钟护盾.glb',
+  vfx4: './assets/Models_3D/VFX/VFX_04_四娃_剪纸烈火舌喷射.glb',
+  vfx5: './assets/Models_3D/VFX/VFX_05_五娃_剪纸卷浪水柱.glb',
+  vfx6: './assets/Models_3D/VFX/VFX_06_七娃_宝葫芦紫金旋涡.glb',
+  vfx7: './assets/Models_3D/VFX/VFX_07_金蛇精_金如意冰凌寒风.glb',
+  vfx8: './assets/Models_3D/VFX/VFX_08_金蛇精_刚柔阴阳剑柔丝网.glb',
+
+  // 3D Terrain Tiles
+  map_mountain: './assets/Models_3D/Maps/MapBG_01_葫芦山脚宣纸底.glb',
+  map_cave: './assets/Models_3D/Maps/MapBG_02_妖洞前殿岩彩底.glb',
+  map_palace: './assets/Models_3D/Maps/MapBG_03_水晶内殿暗紫底.glb',
+};
 
 export const ASSET_PATHS = {
   // Heroes & Allies
@@ -23,10 +88,13 @@ export const ASSET_PATHS = {
   enemy_wasp: './assets/Sprites_Characters/02_Enemies_Bosses/Enemy_03_黄蜂精.png',
   enemy_boar: './assets/Sprites_Characters/02_Enemies_Bosses/Enemy_04_野猪精.png',
 
-  // Map Ground Textures
-  map_mountain: './assets/Sprites_Maps/MapBG_01_葫芦山脚宣纸底.png',
-  map_cave: './assets/Sprites_Maps/MapBG_02_妖洞前殿岩彩底.png',
-  map_palace: './assets/Sprites_Maps/MapBG_03_水晶内殿暗紫底.png',
+  // Map Ground Textures (Clean De-Papered Seamless PBR Albedo & Normal)
+  map_mountain: './assets/Models_3D/Maps/MapBG_01_clean.png',
+  map_cave: './assets/Models_3D/Maps/MapBG_02_clean.png',
+  map_palace: './assets/Models_3D/Maps/MapBG_03_clean.png',
+  map_mountain_normal: './assets/Models_3D/Maps/MapBG_01_normal.png',
+  map_cave_normal: './assets/Models_3D/Maps/MapBG_02_normal.png',
+  map_palace_normal: './assets/Models_3D/Maps/MapBG_03_normal.png',
 
   // Props & Treasures
   prop_vine: './assets/Sprites_Props_Env/01_Props_Treasures/Prop_01_七色葫芦仙藤.png',
@@ -441,7 +509,9 @@ function createFallbackTexture(key) {
 export class AssetRegistry {
   constructor() {
     this.textures = new Map();
+    this.models = new Map();
     this.loader = new THREE.TextureLoader();
+    this.gltfLoader = new GLTFLoader();
     this.loaded = false;
     this._initProceduralTextures();
   }
@@ -459,6 +529,10 @@ export class AssetRegistry {
     return ASSET_PATHS[key] ?? null;
   }
 
+  getModelPath(key) {
+    return MODEL_3D_PATHS[key] ?? null;
+  }
+
   getUrl(key) {
     const path = ASSET_PATHS[key];
     return path ? encodeURI(path) : null;
@@ -466,6 +540,10 @@ export class AssetRegistry {
 
   hasTexture(key) {
     return this.textures.has(key);
+  }
+
+  hasModel(key) {
+    return this.models.has(key);
   }
 
   getTexture(key) {
@@ -476,9 +554,128 @@ export class AssetRegistry {
     return fallback;
   }
 
+  /**
+   * Instantiates a 3D GLB model from loaded templates with optional auto-fitting,
+   * bottom/center pivoting, baked geometry coordinates, and group material opacity proxy.
+   */
+  instantiateModel(key, opts = {}) {
+    const tpl = this.models.get(key);
+    if (!tpl) return null;
+
+    const cloned = tpl.clone(true);
+    cloned.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    let scaleFactor = 1.0;
+    if (opts.fitHeight && size.y > 1e-4) {
+      scaleFactor = opts.fitHeight / size.y;
+    } else if (opts.fitSize) {
+      const maxDim = Math.max(size.x, size.y, size.z, 1e-4);
+      scaleFactor = opts.fitSize / maxDim;
+    }
+
+    const offsetX = -center.x * scaleFactor;
+    const offsetY = opts.pivotBottom ? -box.min.y * scaleFactor : opts.centerOrigin ? -center.y * scaleFactor : 0;
+    const offsetZ = -center.z * scaleFactor;
+
+    const materialsList = [];
+
+    if (opts.bakeTransform) {
+      const rootGroup = new THREE.Group();
+      rootGroup.name = `Model3D_${key}`;
+      const invRoot = cloned.matrixWorld.clone().invert();
+      const bakeMat = new THREE.Matrix4()
+        .makeTranslation(offsetX, offsetY, offsetZ)
+        .multiply(new THREE.Matrix4().makeScale(scaleFactor, scaleFactor, scaleFactor))
+        .multiply(invRoot);
+
+      cloned.traverse((child) => {
+        if (child.isMesh && child.geometry) {
+          const g = child.geometry.clone();
+          const m = bakeMat.clone().multiply(child.matrixWorld);
+          g.applyMatrix4(m);
+          g.computeBoundingBox();
+          g.computeBoundingSphere();
+
+          const mat = Array.isArray(child.material)
+            ? child.material.map((mt) => mt.clone())
+            : child.material
+              ? child.material.clone()
+              : new THREE.MeshStandardMaterial();
+          if (Array.isArray(mat)) materialsList.push(...mat);
+          else materialsList.push(mat);
+
+          const bakedMesh = new THREE.Mesh(g, mat);
+          bakedMesh.name = child.name || key;
+          bakedMesh.castShadow = opts.castShadow ?? true;
+          bakedMesh.receiveShadow = opts.receiveShadow ?? true;
+          bakedMesh.frustumCulled = false;
+          rootGroup.add(bakedMesh);
+        }
+      });
+      return rootGroup;
+    }
+
+    cloned.traverse((child) => {
+      if (child.isMesh) {
+        if (opts.cloneGeometry && child.geometry) {
+          child.geometry = child.geometry.clone();
+        }
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((m) => m.clone());
+          materialsList.push(...child.material);
+        } else if (child.material) {
+          child.material = child.material.clone();
+          materialsList.push(child.material);
+        }
+        child.castShadow = opts.castShadow ?? true;
+        child.receiveShadow = opts.receiveShadow ?? true;
+      }
+    });
+
+    cloned.scale.multiplyScalar(scaleFactor);
+    cloned.position.set(offsetX, offsetY, offsetZ);
+
+    const wrapper = new THREE.Group();
+    wrapper.name = `Model3D_${key}`;
+    wrapper.add(cloned);
+
+    if (opts.opacityProxy) {
+      const baseOpacities = materialsList.map((m) => m.opacity ?? 1.0);
+      let currentOp = opts.initialOpacity ?? 1.0;
+      const applyOp = (val) => {
+        currentOp = val;
+        for (let i = 0; i < materialsList.length; i++) {
+          const m = materialsList[i];
+          const target = baseOpacities[i] * currentOp;
+          m.transparent = target < 0.995 || baseOpacities[i] < 0.995;
+          m.opacity = target;
+          if (m.transparent && target < 0.85) m.depthWrite = false;
+        }
+      };
+      applyOp(currentOp);
+      wrapper.material = {
+        get opacity() {
+          return currentOp;
+        },
+        set opacity(val) {
+          applyOp(val);
+        },
+      };
+    }
+
+    return wrapper;
+  }
+
   async loadAll(onProgress) {
     const imageEntries = Object.entries(ASSET_PATHS).filter(([, path]) => IMAGE_EXT_RE.test(path));
-    const total = imageEntries.length;
+    const modelEntries = Object.entries(MODEL_3D_PATHS);
+    const total = imageEntries.length + modelEntries.length;
     let completed = 0;
 
     if (total === 0) {
@@ -487,13 +684,14 @@ export class AssetRegistry {
       return this;
     }
 
-    const loadOne = ([key, rawPath]) =>
+    const loadOneImage = ([key, rawPath]) =>
       new Promise((resolve) => {
         const url = encodeURI(rawPath);
         this.loader.load(
           url,
           (tex) => {
-            tex.colorSpace = THREE.SRGBColorSpace;
+            const isNormal = key.endsWith('_normal');
+            tex.colorSpace = isNormal ? THREE.NoColorSpace : THREE.SRGBColorSpace;
             tex.generateMipmaps = true;
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
@@ -522,7 +720,28 @@ export class AssetRegistry {
         );
       });
 
-    await Promise.all(imageEntries.map(loadOne));
+    const loadOneModel = ([key, rawPath]) =>
+      new Promise((resolve) => {
+        const url = encodeURI(rawPath);
+        this.gltfLoader.load(
+          url,
+          (gltf) => {
+            this.models.set(key, gltf.scene);
+            completed += 1;
+            if (onProgress) onProgress(completed / total, `3d:${key}`, completed, total);
+            resolve(gltf.scene);
+          },
+          undefined,
+          (err) => {
+            console.warn(`[AssetRegistry] Failed to load 3D model "${key}" (${url}).`, err);
+            completed += 1;
+            if (onProgress) onProgress(completed / total, `3d:${key}`, completed, total);
+            resolve(null);
+          }
+        );
+      });
+
+    await Promise.all([...imageEntries.map(loadOneImage), ...modelEntries.map(loadOneModel)]);
     this.loaded = true;
     return this;
   }
@@ -532,6 +751,7 @@ export class AssetRegistry {
       tex?.dispose?.();
     }
     this.textures.clear();
+    this.models.clear();
     this.loaded = false;
   }
 }

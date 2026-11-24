@@ -275,15 +275,15 @@ export class CrystalPalace {
       this.group.add(col);
     }
 
-    // Shadow cutout demon stalactite pillars framing palace wings
-    const pillarTex = this.assets?.getTexture?.('stage_pillar');
-    if (pillarTex) {
-      const pL = createShadowCutoutMesh(pillarTex, 3.0, 6.4, { thickness: 0.08 });
-      pL.position.set(-11.2, 3.2, -3.2);
+    // 3D Cavern Stalagmite Pillars framing palace wings (Stage_02 GLB)
+    const pL = this.assets?.instantiateModel?.('stage_pillar', { fitHeight: 6.4, pivotBottom: true });
+    if (pL) {
+      pL.position.set(-11.2, 0.0, -3.2);
       this.group.add(pL);
-
-      const pR = createShadowCutoutMesh(pillarTex, 3.0, 6.6, { thickness: 0.08 });
-      pR.position.set(11.6, 3.3, -2.6);
+    }
+    const pR = this.assets?.instantiateModel?.('stage_pillar', { fitHeight: 6.6, pivotBottom: true });
+    if (pR) {
+      pR.position.set(11.6, 0.0, -2.6);
       this.group.add(pR);
     }
 
@@ -378,17 +378,17 @@ export class CrystalPalace {
     this._doorRight.add(knockerR);
     gate.add(this._doorRight);
 
-    // Optional painterly door cutouts integrated behind/front
-    const closedTex = this.assets?.getTexture?.('stage_door_closed');
-    const openTex = this.assets?.getTexture?.('stage_door_open');
-    if (closedTex) {
-      this._doorClosedCutout = createShadowCutoutMesh(closedTex, 3.9, 5.2, { thickness: 0.05 });
-      this._doorClosedCutout.position.set(0, 2.6, 0.04);
+    // 3D Dungeon Stone Doors Closed & Open (Stage_05 & Stage_05b GLB)
+    const closed3D = this.assets?.instantiateModel?.('stage_door_closed', { fitHeight: 5.2, pivotBottom: true });
+    if (closed3D) {
+      this._doorClosedCutout = closed3D;
+      this._doorClosedCutout.position.set(0, 0.0, 0.04);
       gate.add(this._doorClosedCutout);
     }
-    if (openTex) {
-      this._doorOpenCutout = createShadowCutoutMesh(openTex, 4.1, 5.3, { thickness: 0.05 });
-      this._doorOpenCutout.position.set(0, 2.6, -0.35);
+    const open3D = this.assets?.instantiateModel?.('stage_door_open', { fitHeight: 5.3, pivotBottom: true });
+    if (open3D) {
+      this._doorOpenCutout = open3D;
+      this._doorOpenCutout.position.set(0, 0.0, -0.35);
       this._doorOpenCutout.visible = false;
       gate.add(this._doorOpenCutout);
     }
@@ -438,12 +438,11 @@ export class CrystalPalace {
       this._grandpaWebGroup.add(ring);
     }
 
-    // stage_web_grandpa cutout mesh layered on the front of the prison pillar
-    const webTex = this.assets?.getTexture?.('stage_web_grandpa');
-    if (webTex) {
-      const webCutout = createShadowCutoutMesh(webTex, 3.0, 4.2, { thickness: 0.06 });
-      webCutout.position.set(0, 2.15, 0.72);
-      this._grandpaWebGroup.add(webCutout);
+    // 3D Bound Grandpa on Spiderweb Rock Pillar (Stage_04 GLB)
+    const web3D = this.assets?.instantiateModel?.('stage_web_grandpa', { fitHeight: 4.2, pivotBottom: true });
+    if (web3D) {
+      web3D.position.set(0, 0.05, 0.65);
+      this._grandpaWebGroup.add(web3D);
     }
 
     this.group.add(pillarGroup);
@@ -744,11 +743,10 @@ export class CrystalPalace {
     glass.scale.set(0.95, 1.12, 1);
     this._mirrorGlassGroup.add(glass);
 
-    const mirrorTex = this.assets?.getTexture?.('prop_mirror');
-    if (mirrorTex) {
-      const mirrorCutout = createShadowCutoutMesh(mirrorTex, 2.7, 3.1, { thickness: 0.04 });
-      mirrorCutout.position.set(0, 0, -0.14);
-      this._mirrorGlassGroup.add(mirrorCutout);
+    const mirror3D = this.assets?.instantiateModel?.('prop_mirror', { fitHeight: 3.1, centerOrigin: true });
+    if (mirror3D) {
+      mirror3D.position.set(0, 0, -0.05);
+      this._mirrorGlassGroup.add(mirror3D);
     }
     altarGroup.add(this._mirrorGlassGroup);
 

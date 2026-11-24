@@ -277,13 +277,11 @@ export class AlchemyCorePeak {
       this._cauldronIntactGroup.add(handle);
     }
 
-    // Optional subtle prop_cauldron emblem glow integrated inside hearth
-    const cauldronTex = this.assets?.getTexture?.('prop_cauldron');
-    if (cauldronTex) {
-      const relief = createShadowCutoutMesh(cauldronTex, 2.2, 2.2, { thickness: 0.03 });
-      relief.position.set(0, -0.1, -1.68);
-      relief.visible = false; // kept as optional reference hook; pure 3D bronze sculpture is hero
-      this._cauldronIntactGroup.add(relief);
+    // 3D Bronze Tripod Cauldron model (Prop_02 GLB) integrated with hearth
+    const cauldron3D = this.assets?.instantiateModel?.('prop_cauldron', { fitHeight: 2.35, pivotBottom: true });
+    if (cauldron3D) {
+      cauldron3D.position.set(0, -1.15, 0);
+      this._cauldronIntactGroup.add(cauldron3D);
     }
 
     // Explosive domed bronze lid made of 6 interlocking pie-slice chunks + finial knob
