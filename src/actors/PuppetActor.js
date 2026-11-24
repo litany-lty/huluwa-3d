@@ -138,6 +138,16 @@ export class PuppetActor {
     return this;
   }
 
+  // Directional weight and silhouette for a directed reaction. Values are per
+  // evaluation (not timers), so random access produces the same blocking.
+  setPhysicalBeat({ lean = 0, turn = 0, crouch = 0, still = 0 } = {}) {
+    this.beatLean = lean;
+    this.beatTurn = turn;
+    this.beatCrouch = crouch;
+    this.beatStill = still;
+    return this;
+  }
+
   setPosition(x, y, z) {
     this.group.position.set(x, y, z);
     return this;
@@ -224,6 +234,7 @@ export class PuppetActor {
     this.scaleGroup.scale.set(1, 1, 1);
 
     this.pose = 'idle';
+    this.setPhysicalBeat();
     this.sinkDepth = 0;
     this.stealthAmount = 0;
     this.corruptedAmount = 0;
@@ -309,8 +320,9 @@ export class PuppetActor {
       bodyRotY = Math.sin(t * 1.2 + ph) * 0.08;
     }
 
-    this.flipGroup.position.set(0, bodyY, 0);
-    this.flipGroup.rotation.set(0, bodyRotY, bodyRotZ);
+    const live = 1 - this.beatStill;
+    this.flipGroup.position.set(0, -this.sinkDepth + (bodyY + this.sinkDepth) * live - this.beatCrouch * h, 0);
+    this.flipGroup.rotation.set(0, bodyRotY * live + this.beatTurn, bodyRotZ * live - this.facing * this.beatLean);
 
     let hasSuction = false;
     let sucX = 0;
@@ -322,7 +334,7 @@ export class PuppetActor {
       TEMP_VEC3.copy(this.suctionTarget).sub(this.group.position);
       const invScale = 1 / Math.max(0.05, this.giantScale);
       sucX = TEMP_VEC3.x * invScale * (this.facing < 0 ? -1 : 1);
-      sucY = TEMP_VEC3.y * invScale - bodyY;
+      sucY = TEMP_VEC3.y * invScale - this.flipGroup.position.y;
       sucZ = TEMP_VEC3.z * invScale;
     }
 
@@ -446,9 +458,9 @@ export class PuppetActor {
           x += Math.sin(v * 14.0 - t * 8.5 + u * 4.0) * 0.028 * w * stealth;
         }
 
-        arr[i3] = x;
-        arr[i3 + 1] = y;
-        arr[i3 + 2] = z;
+        arr[i3] = bx + (x - bx) * live;
+        arr[i3 + 1] = by + (y - by) * live;
+        arr[i3 + 2] = bz + (z - bz) * live;
       }
 
       posAttr.needsUpdate = true;
