@@ -70,6 +70,6 @@ assets/       角色、道具、场景、特效贴图与音乐音效
 原作角色、造型与主题曲的权利归原权利方所有。
 
 - `src/`、`tools/`、`index.html`、`style.css` 的代码以 **MIT** 协议开源。
-- `assets/` 中的素材是基于原作的二次创作，**不在 MIT 协议范围内**，仅供学习和非商业用途。如权利方认为不妥，请提 issue 联系，我会及时处理。
+- `assets/` 中的素材是基于原作的二次创作，**不在 MIT 协议范围内**（见 [NOTICE](NOTICE)），仅供学习和非商业用途。如权利方认为不妥，请提 issue 联系，我会及时处理。
 
 This is a non-commercial fan tribute. Code is MIT licensed; files in `assets/` are fan-made derivatives of the original work and are not covered by the MIT license.

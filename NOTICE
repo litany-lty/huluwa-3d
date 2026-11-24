@@ -1,0 +1,6 @@
+Scope note: this MIT license covers the source code in this repository
+(src/, tools/, index.html, style.css). It does NOT cover the files in
+assets/, which are non-commercial fan-made derivatives of characters, props
+and music from "Calabash Brothers" (葫芦兄弟, Shanghai Animation Film Studio,
+1986). All rights to the original work belong to their respective holders.
+The bundled three.js files in vendor/ are MIT licensed by the three.js authors.
