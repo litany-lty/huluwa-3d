@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { AssetRegistry } from './core/AssetRegistry.js';
 import { PostPipeline } from './core/PostPipeline.js';
+import { buildFilmSoundtrack } from './core/FilmSoundtrack.js';
 import { AudioMaestro } from './core/AudioMaestro.js';
 import { WorldStageManager } from './worlds/WorldStageManager.js';
 import { createFullCast } from './actors/CastFactory.js';
@@ -134,7 +135,18 @@ async function bootstrap() {
 
   // 3. Instantiate Core Systems, Worlds, Cast, FX, Post-Processing, Director
   const postPipeline = new PostPipeline(renderer, scene, camera);
-  const audio = new AudioMaestro();
+  const legacyAudio = !exportMode && params.get('audio') === 'legacy';
+  const master = !exportMode && !legacyAudio
+    ? buildFilmSoundtrack(TOTAL_DUR, (err) => {
+      console.warn('[Huluwa3D] Soundtrack unavailable:', err);
+      if (btnMute) {
+        btnMute.title = '片源音频不可用 / Soundtrack unavailable';
+        btnMute.setAttribute('aria-label', btnMute.title);
+      }
+    })
+    : null;
+  const audio = legacyAudio ? new AudioMaestro() : null;
+  const audioControls = master ?? audio;
   const worldStage = new WorldStageManager(scene, assets);
   const cast = createFullCast(scene, assets);
   const fx = new PowersAndTrapsFX(scene, assets);
@@ -167,7 +179,7 @@ async function bootstrap() {
   const totalFormatted = formatTime(TOTAL_DUR);
 
   function prewarmAudioLazy() {
-    if (audioPrewarmed) return;
+    if (!legacyAudio || audioPrewarmed) return;
     audioPrewarmed = true;
     audio.unlock().then((ok) => {
       if (ok) {
@@ -381,6 +393,7 @@ async function bootstrap() {
 
   function seek(t) {
     currentTime = clamp(Number(t) || 0, 0, TOTAL_DUR);
+    if (master && !master.failed) master.seek(currentTime);
     const applyCamera = cameraMode === 'director';
     const frame = evaluateGlobal(currentTime, { applyCamera, playAudio: false });
     lastFrame = frame;
@@ -400,29 +413,43 @@ async function bootstrap() {
     return frame;
   }
 
+  let playbackRequest = 0;
+
+  function resumeMaster() {
+    const request = ++playbackRequest;
+    master.play().then((result) => {
+      if (result === 'NotAllowedError' && request === playbackRequest) pause();
+    });
+  }
+
   function play() {
     if (introCurtain) {
       introCurtain.classList.add('hidden');
     }
     if (currentTime >= TOTAL_DUR - 0.05) {
-      currentTime = 0;
-      evaluateGlobal(0, { applyCamera: cameraMode === 'director', playAudio: false });
+      seek(0);
     }
     musicMode = null;
     playing = true;
     if (btnPlay) btnPlay.classList.add('is-playing');
-    audio.setPaused(false);
-    prewarmAudioLazy();
-    musicSync(currentTime);
-    if (modeAt(currentTime) === 'film' && currentAct?.bgm) {
-      audio.setBGM(currentAct.bgm, 0.8, currentAct.bgmVol ?? 0.5);
+    if (master && !master.failed) {
+      if (!isScrubbing) resumeMaster();
+    } else if (legacyAudio) {
+      audio.setPaused(false);
+      prewarmAudioLazy();
+      musicSync(currentTime);
+      if (modeAt(currentTime) === 'film' && currentAct?.bgm) {
+        audio.setBGM(currentAct.bgm, 0.8, currentAct.bgmVol ?? 0.5);
+      }
     }
   }
 
   function pause() {
+    playbackRequest++;
     playing = false;
     if (btnPlay) btnPlay.classList.remove('is-playing');
-    audio.setPaused(true);
+    master?.pause();
+    audio?.setPaused(true);
   }
 
   function setCameraMode(mode) {
@@ -451,8 +478,9 @@ async function bootstrap() {
   }
 
   function toggleMute() {
-    const nextMuted = !audio.muted;
-    audio.setMuted(nextMuted);
+    if (!audioControls) return;
+    const nextMuted = !audioControls.muted;
+    audioControls.setMuted(nextMuted);
     if (btnMute) btnMute.classList.toggle('is-muted', nextMuted);
   }
 
@@ -495,6 +523,7 @@ async function bootstrap() {
   if (timelineTrack) {
     timelineTrack.addEventListener('pointerdown', (e) => {
       isScrubbing = true;
+      master?.pause();
       timelineTrack.setPointerCapture(e.pointerId);
       prewarmAudioLazy();
       scrubFromClientX(e.clientX);
@@ -506,6 +535,7 @@ async function bootstrap() {
     const endScrub = (e) => {
       if (!isScrubbing) return;
       isScrubbing = false;
+      if (playing && master && !master.failed) resumeMaster();
       try {
         timelineTrack.releasePointerCapture(e.pointerId);
       } catch (_) {
@@ -574,6 +604,9 @@ async function bootstrap() {
       filmTime: currentTime - OPEN_DUR,
       playing,
       cameraMode,
+      audioMode: exportMode ? 'none' : legacyAudio ? 'legacy' : master.failed ? 'silent' : 'master',
+      audioTime: master?.currentTime,
+      muted: audioControls?.muted,
       act: currentAct,
     }),
     director,
@@ -599,7 +632,10 @@ async function bootstrap() {
     lastNow = now;
 
     if (playing && !isScrubbing) {
-      currentTime += dt;
+      // Drive the picture from the decoded master, including after seek and rebuffer.
+      // A sparse render frame can fall behind without accumulating soundtrack drift.
+      if (master && !master.failed) currentTime = master.currentTime;
+      else currentTime += dt;
       if (currentTime >= TOTAL_DUR) {
         currentTime = TOTAL_DUR;
         const finalFrame = evaluateGlobal(currentTime, {
@@ -610,10 +646,10 @@ async function bootstrap() {
         syncUI(finalFrame);
         pause();
       } else {
-        musicSync(currentTime);
+        if (legacyAudio) musicSync(currentTime);
         const frame = evaluateGlobal(currentTime, {
           applyCamera: cameraMode === 'director',
-          playAudio: true,
+          playAudio: legacyAudio,
         });
         lastFrame = frame;
         syncUI(frame);
