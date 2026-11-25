@@ -734,13 +734,13 @@ export class FilmDirector {
       p?.setDoorOpen(openP);
       const through = t >= 78.92;
       const runU = through ? smoothstep(78.92, 80.5, t) : smoothstep(76.12, 78.27, t);
-      const sx = through ? lerp(119.98, 122.6, runU) : lerp(117.90, 119.98, runU);
-      const sz = through ? lerp(1.94, .25, runU) : lerp(2.61, 1.94, runU);
+      const sx = through ? lerp(119.44, 122.6, runU) : lerp(117.90, 119.44, runU);
+      const sz = through ? lerp(2.58, 1.98, runU) : lerp(2.79, 2.58, runU);
       actors.sanwa?.setVisible(true).setPosition(sx, 0, sz).setFacing(1).setPose('hold')
-        .setGroundedTravel(runU, through ? 2.62 : 2.08, through ? -1.69 : -.67)
+        .setGroundedTravel(runU, through ? 3.16 : 1.54, through ? -.6 : -.21)
         .setDirectedReach(pulseBell(t, 78.31, .57))
         .setPhysicalBeat({ lean: .28 * pulseBell(t, 78.3, .54), turn: .18, still: 0.26 });
-      fx?.setSanwaIron({ pos: [sx, 0, sz], shieldIntensity: pulseBell(t, 78.43, .64) * .25 });
+      fx?.setSanwaIron({ pos: [sx, 0, sz], shieldIntensity: pulseBell(t, 78.43, .46) * .08 });
       flash = pulseBell(t, 78.6, 0.14) * 0.09;
     } else if (t < 86.0) {
       // Copper head & iron arms deflecting 24 wasp poison needles + shattering Centipede's axe!
