@@ -1805,7 +1805,7 @@ export class PowersAndTrapsFX {
       fx.bellSprite.rotation.z = t * 0.8;
       fx.bellSprite.material.opacity = s.shieldIntensity * .33;
       fx.bellDome.scale.setScalar(0.92 + 0.12 * s.shieldIntensity);
-      fx.bellDome.material.opacity = s.shieldIntensity * 0.26 * pulse;
+      fx.bellDome.material.opacity = s.shieldIntensity * .12 * pulse;
     }
 
     const np = s.needleProgress;
