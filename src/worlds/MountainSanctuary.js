@@ -804,9 +804,14 @@ export class MountainSanctuary {
       pergola.add(rafter);
     }
 
-    // 3D Seven-Color Calabash Vine (Prop_01 GLB) integrated behind the pergola posts
+    // Keep the GLB foliage as scenery; the animated anchors below own all seven fruits.
     const vine3D = this.assets?.instantiateModel?.('prop_vine', { fitHeight: 3.8, pivotBottom: true });
     if (vine3D) {
+      const bakedFruit = [];
+      vine3D.traverse(node => {
+        if (/^Gourd_\d+_[A-Za-z]+(?:_Stem)?$/.test(node.name)) bakedFruit.push(node);
+      });
+      bakedFruit.forEach(node => node.removeFromParent());
       this._vineBackdrop = vine3D;
       this._vineBackdrop.position.set(0, 0.12, -0.92);
       pergola.add(this._vineBackdrop);

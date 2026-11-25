@@ -567,9 +567,11 @@ export class AlchemyCorePeak {
 
     // Smoothly sink dark magma cavern & foreground spikes as sunlit 7-color peak rises
     if (this._cavernGroup) {
-      const sinkP = clamp01((p - 0.45) / 0.42);
-      this._cavernGroup.position.y = -sinkP * 6.8;
-      this._cavernGroup.visible = p < 0.85;
+      const sinkP = clamp01((p - 0.45) / 0.50);
+      const easedSink = sinkP * sinkP * (3 - 2 * sinkP);
+      // Clear the tallest 15.2-unit spire below the stage before hiding the group.
+      this._cavernGroup.position.y = -easedSink * 17.5;
+      this._cavernGroup.visible = sinkP < 1;
     }
 
     this.sealMountain.visible = p > 0.002;

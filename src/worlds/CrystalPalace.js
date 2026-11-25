@@ -759,8 +759,10 @@ export class CrystalPalace {
       depthWrite: false,
       side: THREE.DoubleSide,
     });
-    const beamGeo = new THREE.ConeGeometry(2.4, 11.5, 18, 1, true);
-    beamGeo.translate(0, -5.75, 0);
+    // End the beam on the stage, before it can surround the audience camera.
+    const beamLength = 6;
+    const beamGeo = new THREE.ConeGeometry(1.65, beamLength, 18, 1, true);
+    beamGeo.translate(0, -beamLength / 2, 0);
     beamGeo.rotateX(-Math.PI / 2);
     this._mirrorBeam = new THREE.Mesh(beamGeo, this._mirrorBeamMat);
     this._mirrorBeam.position.set(0, 0, 0.12);
@@ -974,7 +976,7 @@ export class CrystalPalace {
 
     const showBeam = active && beam > 0.01 && shattered < 0.15;
     this._mirrorBeam.visible = showBeam;
-    this._mirrorBeamMat.opacity = showBeam ? beam * 0.45 : 0;
+    this._mirrorBeamMat.opacity = showBeam ? beam * 0.20 : 0;
 
     this._mirrorShardGroup.visible = shattered > 0.005;
     if (shattered > 0.005) {
@@ -1021,7 +1023,7 @@ export class CrystalPalace {
     // Magic mirror beam gentle hypnotic sweep
     if (this._mirrorBeam.visible) {
       this._mirrorBeam.rotation.y = Math.sin(t * 1.8) * 0.18;
-      this._mirrorBeamMat.opacity = this._mirrorState.beam * (0.38 + Math.sin(t * 6.5) * 0.08);
+      this._mirrorBeamMat.opacity = this._mirrorState.beam * (0.17 + Math.sin(t * 6.5) * 0.04);
     }
 
     // Golden Ruyi floating pulse on Demon Couch
