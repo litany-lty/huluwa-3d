@@ -42,6 +42,17 @@ function pulseBell(t, peakT, halfWidth) {
   return u * u * (3 - 2 * u);
 }
 
+function armGripAtRelease(out, bend) {
+  const x = -0.5484 + 0.10 * Math.abs(Math.sin(bend));
+  const y = 1.79 + (0.9483 - 1.79) * Math.cos(bend) - (0.2021 - 0.27) * Math.sin(bend);
+  const z = 0.27 + (0.9483 - 1.79) * Math.sin(bend) + (0.2021 - 0.27) * Math.cos(bend);
+  out.set(x, y, z).applyEuler(RELEASE_ROTATION);
+  out.y *= 0.84;
+  out.add(RELEASE_ROOT);
+}
+const RELEASE_ROTATION = new THREE.Euler(0, 0.41, -0.42);
+const RELEASE_ROOT = new THREE.Vector3(192.78, 0.60, 1.94);
+
 const CINEMA_MOODS = {
   sanctuary_dawn: { warmth: 0.18, vignette: 0.30, saturation: 1.12, bloomStr: 0.46, bloomThr: 0.78 },
   seal_storm:     { warmth: -0.06, vignette: 0.48, saturation: 1.04, bloomStr: 0.62, bloomThr: 0.70 },
@@ -282,15 +293,27 @@ export class FilmDirector {
     // 4. Advance stage, cast, FX & cinematic post-processing
     ws?.update?.(clampedT, activeMood, cam.look.x);
     this.cast?.updateAll?.(clampedT);
+    if (act.id === 8 && clampedT < 197.48 && actors.grandpa) {
+      const grip = actors.grandpa.getLotusGrip(this._tmpVecA);
+      fx?.setLotusMiracle({
+        lotusPos: [grip.x, grip.y + 0.08, grip.z + 0.025],
+        lotusVisible: true, bloomProgress: 0.26, paperLotus: true,
+      });
+    }
     fx?.update?.(clampedT);
 
     if (this.postPipeline) {
-      const m = CINEMA_MOODS[activeMood] ?? CINEMA_MOODS.sanctuary_dawn;
+      const base = CINEMA_MOODS[activeMood] ?? CINEMA_MOODS.sanctuary_dawn;
+      const m = act.id === 8
+        ? { warmth: 0.09, vignette: 0.30, saturation: 1.04, bloomStr: 0.18, bloomThr: 0.90 }
+        : { warmth: base.warmth * .58, vignette: base.vignette * .82,
+            saturation: 1 + (base.saturation - 1) * .56, bloomStr: base.bloomStr * .46,
+            bloomThr: Math.max(.84, base.bloomThr) };
       this.postPipeline.setCinemaMood({
         warmth: m.warmth,
         vignette: m.vignette,
         saturation: m.saturation,
-        flash,
+        flash: act.id === 8 ? flash : flash * .43,
       });
       this.postPipeline.setBloom(m.bloomStr, m.bloomThr);
     }
@@ -338,8 +361,8 @@ export class FilmDirector {
     if (t < 5.5) {
       // Peaceful mountain sanctuary opening
       m?.setVineGrowth(0.12);
-      const u = invLerp(0, 5.5, t);
-      actors.grandpa?.setVisible(true).setPosition(lerp(-4.8, -3.5, u), 0, -1.4).setFacing(1).setPose('walk');
+      const u = smoothstep(.45, 4.9, t);
+      actors.grandpa?.setVisible(true).setPosition(lerp(-4.8, -3.5, u), 0, -1.4).setFacing(1).setPose('hold').setGroundedTravel(u, 1.3, 0);
       actors.pangolin?.setVisible(true).setPosition(lerp(3.5, 7.6, u), lerp(0, 1.8, u), -2.4).setFacing(1).setPose('run');
     } else if (t < 11.5) {
       // Pangolin drills cliff fissure -> Seal cracks -> Scorpion & Snake escape!
@@ -349,11 +372,12 @@ export class FilmDirector {
       m?.setVineGrowth(0.12);
 
       const stormInt = smoothstep(6.0, 7.4, t) * (1.0 - smoothstep(10.6, 11.5, t));
-      fx?.setSealStorm({ pos: [8.5, 3.2, -3.2], intensity: stormInt });
+      fx?.setSealStorm({ pos: [8.5, 3.2, -3.2], intensity: stormInt * .52 });
       flash = pulseBell(t, 6.5, 0.16) * 0.11;
 
       if (t < 7.2) {
-        actors.pangolin?.setVisible(true).setPosition(7.8, 2.2, -2.5).setFacing(1).setPose('attack');
+        actors.pangolin?.setVisible(true).setPosition(7.5 + .34 * pulseBell(t, 6.48, .65), 2.2, -2.5).setFacing(1).setPose('hold')
+          .setPhysicalBeat({ lean: .30 * pulseBell(t, 6.48, .65), still: .94 });
       } else {
         const recoil = easeOutCubic(invLerp(7.2, 10.2, t));
         actors.pangolin?.setVisible(true)
@@ -376,15 +400,15 @@ export class FilmDirector {
     } else if (t < 16.0) {
       // Grandpa rescues Pangolin near cottage & plants sacred seed at pergola
       m?.setSealCrack(0.85);
-      const u = invLerp(11.5, 16.0, t);
+      const u = smoothstep(11.5, 12.74, t) * .41 + smoothstep(13.5, 14.64, t) * .59;
       const reach = smoothstep(12.5, 13.2, t) * (1 - smoothstep(13.45, 14, t));
-      const plant = smoothstep(14.6, 15.4, t);
+      const plant = pulseBell(t, 15.1, .85);
       m?.setVineGrowth(lerp(0.12, 0.42, smoothstep(13.8, 16.0, t)));
 
       actors.grandpa?.setVisible(true)
-        .setPosition(lerp(-4.4, -0.8, easeInOutQuad(u)), 0, lerp(-1.5, 1.45, u))
+        .setPosition(lerp(-4.4, -0.8, u), 0, lerp(-1.5, 1.45, u))
         .setFacing(1)
-        .setPose(reach > 0.25 || plant > 0.25 ? 'idle' : 'walk')
+        .setPose('hold').setGroundedTravel(u, 3.6, 2.95).setDirectedReach(Math.max(reach, plant) * .86)
         .setPhysicalBeat({ lean: 0.22 * reach + 0.29 * plant, crouch: 0.10 * reach + 0.16 * plant, still: Math.max(reach, plant) * 0.85 });
       actors.pangolin?.setVisible(true)
         .setPosition(lerp(-3.0, -2.2, easeInOutQuad(u)), 0, lerp(-0.65, 1.9, u))
@@ -393,7 +417,7 @@ export class FilmDirector {
     } else if (t < 21.5) {
       // Calabash vine bursts into bloom & 7 glowing gourds appear in cascade
       m?.setSealCrack(0.7);
-      const vineP = smoothstep(16.0, 18.0, t);
+      const vineP = smoothstep(16.18, 18.5, t);
       m?.setVineGrowth(lerp(0.42, 1.0, vineP));
 
       for (let i = 0; i < 7; i++) {
@@ -402,7 +426,7 @@ export class FilmDirector {
         m?.setGourdState(i, {
           visible: gp > 0.02,
           scale: gp,
-          glow: 0.35 + gp * 0.95,
+          glow: 0.24 + gp * 0.47,
           cracked: false,
           darkCorrupted: false,
         });
@@ -425,7 +449,7 @@ export class FilmDirector {
       actors.scorpion?.setVisible(true).setPosition(swoopX, swoopY, -1.0).setFacing(-1).setPose('attack');
 
       const webP = smoothstep(22.2, 23.8, t);
-      const liftP = easeInOutQuad(invLerp(23.6, 26.0, t));
+      const liftP = smoothstep(23.8, 26, t);
       const gx = lerp(-1.5, 3.4, liftP);
       const gy = lerp(0.0, 3.8, liftP);
       const gz = lerp(1.45, -1.2, liftP);
@@ -441,7 +465,7 @@ export class FilmDirector {
 
       fx?.setSealStorm({
         pos: [swoopX, swoopY + 1.0, -1.2],
-        intensity: 0.85,
+        intensity: 0.42,
         webFrom: [swoopX - 0.6, swoopY + 1.2, -0.8],
         webTo: [gx, gy + 1.3, gz],
         webProgress: webP,
@@ -483,7 +507,8 @@ export class FilmDirector {
             .setPosition(lerp(gPos.x, 0.8, drop), lerp(gPos.y - 0.6, 0, drop), lerp(gPos.z, 0.4, drop))
             .setFacing(1)
             .setGiantScale(lerp(1.0, 3.0, grow))
-            .setPose(grow < 0.7 ? 'leap' : 'heroic');
+            .setPose(t < 28.8 ? 'leap' : 'hold')
+            .setPhysicalBeat({ crouch: .11 * pulseBell(t, 28.81, .44), turn: .18 * grow, still: .82 });
           flash = pulseBell(t, 27.7, 0.15) * 0.09;
         }
       } else {
@@ -496,12 +521,15 @@ export class FilmDirector {
           .setPosition(dawaX, 0, 1.85)
           .setFacing(1)
           .setGiantScale(3.0)
-          .setPose(t < 33.0 ? 'cast' : t < 35.0 ? 'attack' : 'heroic');
+          .setPose('hold').setDirectedReach(.7 * pulseBell(t, 31.78, .94))
+          .setPhysicalBeat({ crouch: .085 * pulseBell(t, 33.2, .52),
+            lean: -.24 * pulseBell(t, 31.72, .78) + .28 * pulseBell(t, 33.05, .73), still: .92 });
 
         // Boulder raised over head then smashed down onto (6.2, 0.2, 1.5)
         const throwU = invLerp(31.8, 33.2, t);
         const bX = lerp(dawaX + 0.7, 6.2, throwU);
-        const bY = t < 31.8 ? 4.8 : lerp(5.4, 0.2, throwU * throwU);
+        const lift = smoothstep(31.03, 31.8, t);
+        const bY = t < 31.8 ? lerp(2.55, 5.35, lift) : lerp(5.35, 0.2, throwU * throwU);
         fx?.setDawaSmash({
           boulderPos: [bX, bY, 1.55],
           boulderScale: 1.32,
@@ -512,7 +540,7 @@ export class FilmDirector {
         flash = pulseBell(t, 33.25, 0.15) * 0.10;
 
         // Toads & Boars charge then get launched sky-high on impact
-        const fly = easeOutCubic(invLerp(33.2, 37.5, t));
+        const baseFly = 33.23;
         const enemies = [
           { a: actors.toad,  sx: 6.5, ex: 13.0, ey: 5.5, z: 1.75 },
           { a: actors.toad2, sx: 7.5, ex: 14.4, ey: 6.8, z: 1.15 },
@@ -520,12 +548,13 @@ export class FilmDirector {
           { a: actors.boar2, sx: 8.2, ex: 15.0, ey: 5.8, z: 1.30 },
         ];
         enemies.forEach((e, idx) => {
+          const fly = easeOutCubic(invLerp(baseFly + .065 * idx, 37.5, t));
           const ex = t < 33.2 ? lerp(e.sx + 2.5, e.sx, chargeU) : lerp(e.sx, e.ex, fly);
           const ey = t < 33.2 ? 0 : Math.sin(fly * Math.PI) * e.ey + fly * 1.5;
           e.a?.setVisible(true)
             .setPosition(ex, ey, e.z)
             .setFacing(-1)
-            .setPose(t < 33.2 ? 'run' : 'struggle');
+            .setPose(t < 33.2 ? 'run' : 'struggle').setGroundedTravel(t < 33.2 ? chargeU : 1, -2.5, 0);
           if (t >= 33.2 && e.a) e.a.group.rotation.z = -fly * (3.5 + idx * 0.8);
         });
       }
@@ -541,6 +570,7 @@ export class FilmDirector {
           .setGiantScale(lerp(2.4, 2.0, u))
           .setSinkDepth(smoothstep(0.65, 1.0, u) * 0.22)
           .setPose(u < 0.72 ? 'run' : 'struggle')
+          .setGroundedTravel(Math.min(1, u / .72), 3.24, -.61)
           .setPhysicalBeat({ lean: -0.27 * check, still: check * 0.6 });
         actors.snake?.setVisible(true)
           .setPosition(lerp(66.2, 68.2, u), 0.25, -0.6)
@@ -608,13 +638,15 @@ export class FilmDirector {
       actors.erwa?.setVisible(true)
         .setPosition(58.5, 4.6, -1.2)
         .setFacing(1)
-        .setPose(beamInt > 0.2 ? 'cast' : 'heroic');
+        .setPose('hold')
+        .setDirectedReach(.72 * pulseBell(t, 55.52, 1.05))
+        .setPhysicalBeat({ lean: .14 * pulseBell(t, 56.1, 1.8), turn: .31 * beamInt, still: .86 });
 
       fx?.setErwaSense({
         origin: [58.9, 6.25, -1.1],
         target: [70.2, 2.5, -1.8],
-        beamIntensity: beamInt,
-        earRipple: earInt,
+        beamIntensity: beamInt * .58,
+        earRipple: earInt * .40,
       });
 
       // Distant spotted captives near grotto edge
@@ -629,11 +661,11 @@ export class FilmDirector {
       c?.setDreamIllusion(illP);
 
       if (t < 66.5) {
-        const sneak = invLerp(62.0, 66.5, t);
+        const sneak = smoothstep(62.15, 66.03, t);
         actors.erwa?.setVisible(true)
           .setPosition(lerp(69.0, 70.6, sneak), 1.4, -1.4)
           .setFacing(1)
-          .setPose(sneak < 0.7 ? 'walk' : 'idle');
+          .setPose('hold').setGroundedTravel(sneak, 1.6, 0);
         actors.snake?.setVisible(true)
           .setPosition(73.1, 2.0, -2.0)
           .setFacing(-1)
@@ -641,7 +673,7 @@ export class FilmDirector {
       } else {
         // 66.5..71s: Blinding crimson-white sword rays pierce Erwa's eyes!
         const blindP = invLerp(66.8, 69.4, t);
-        const stagger = easeOutCubic(invLerp(67.6, 71.0, t));
+        const stagger = smoothstep(67.62, 69.64, t);
         actors.snake?.setVisible(true).setPosition(72.8, 2.1, -2.0).setFacing(-1).setPose('attack');
         actors.erwa?.setVisible(true)
           .setPosition(lerp(70.6, 68.7, stagger), lerp(1.4, 1.1, stagger), lerp(-1.4, -0.7, stagger))
@@ -673,9 +705,9 @@ export class FilmDirector {
           .setFacing(1)
           .setPose('attack');
       } else {
-        const fall = invLerp(72.4, 76.0, t);
+        const fall = invLerp(72.4, 75.62, t);
         actors.pangolin?.setVisible(true)
-          .setPosition(lerp(59.2, 58.6, fall), 4.6 - fall * fall * 7.8, lerp(-1.2, -0.4, fall))
+          .setPosition(lerp(59.2, 56.9, easeOutCubic(fall)), 4.6 + Math.sin(fall * Math.PI) * .4 - fall * fall * 7.8, lerp(-1.2, -0.4, fall))
           .setFacing(-1)
           .setPose('struggle');
         if (actors.pangolin) actors.pangolin.group.rotation.z = fall * 5.2;
@@ -698,19 +730,23 @@ export class FilmDirector {
 
     if (t < 80.5) {
       // Sanwa smashes open Demon Cave stone gate
-      const openP = smoothstep(78.2, 79.4, t);
+      const openP = smoothstep(78.33, 79.44, t);
       p?.setDoorOpen(openP);
-      const runU = easeOutCubic(invLerp(76.0, 80.5, t));
+      const runU = smoothstep(76.12, 78.27, t) * .55 + smoothstep(78.92, 80.5, t) * .45;
       const sx = lerp(118.4, 122.6, runU);
-      actors.sanwa?.setVisible(true).setPosition(sx, 0, 0.2).setFacing(1).setPose(t < 78.8 ? 'run' : 'attack');
-      fx?.setSanwaIron({ pos: [sx, 0, 0.2], shieldIntensity: smoothstep(77.5, 79.0, t) * 0.85 });
+      actors.sanwa?.setVisible(true).setPosition(sx, 0, 0.2).setFacing(1).setPose('hold').setGroundedTravel(runU, 4.2, 0)
+        .setDirectedReach(pulseBell(t, 78.31, .57))
+        .setPhysicalBeat({ lean: .28 * pulseBell(t, 78.3, .54), still: 0.26 });
+      fx?.setSanwaIron({ pos: [sx, 0, 0.2], shieldIntensity: pulseBell(t, 78.43, .82) * .53 });
       flash = pulseBell(t, 78.6, 0.14) * 0.09;
     } else if (t < 86.0) {
       // Copper head & iron arms deflecting 24 wasp poison needles + shattering Centipede's axe!
       p?.setDoorOpen(1);
-      const u = invLerp(80.5, 86.0, t);
+      const u = smoothstep(80.5, 82.6, t) * .58 + smoothstep(84.15, 84.77, t) * .42;
       const sx = lerp(124.2, 127.8, u);
-      actors.sanwa?.setVisible(true).setPosition(sx, 0, -0.35).setFacing(1).setPose(t > 84.2 ? 'attack' : 'heroic');
+      actors.sanwa?.setVisible(true).setPosition(sx, 0, -0.35).setFacing(1).setPose('hold').setGroundedTravel(u, 3.6, 0)
+        .setDirectedReach(pulseBell(t, 84.77, .64))
+        .setPhysicalBeat({ lean: -.13 * pulseBell(t, 83.2, .82) + .24 * pulseBell(t, 84.77, .65), still: .33 });
 
       actors.wasp?.setVisible(true).setPosition(130.6, 2.7 + Math.sin(t * 7) * 0.2, -0.6).setFacing(-1).setPose('attack');
       actors.wasp2?.setVisible(true).setPosition(131.5, 3.4 + Math.cos(t * 7) * 0.2, -0.1).setFacing(-1).setPose('attack');
@@ -723,7 +759,7 @@ export class FilmDirector {
 
       fx?.setSanwaIron({
         pos: [sx, 0, -0.35],
-        shieldIntensity: 1.0,
+        shieldIntensity: .38 + .26 * pulseBell(t, 84.76, .7),
         needleOrigin: [130.6, 2.9, -0.4],
         needleProgress: invLerp(81.5, 84.5, t),
         axeShatterPos: [sx + 0.9, 1.7, -0.35],
@@ -736,7 +772,7 @@ export class FilmDirector {
       const leapU = invLerp(86.0, 88.8, t);
       const landU = invLerp(88.8, 91.5, t);
       const sx = t < 88.8 ? lerp(131.2, 134.4, easeOutCubic(leapU)) : lerp(134.4, 132.4, landU);
-      const sy = t < 88.8 ? Math.sin(leapU * Math.PI * 0.75) * 2.4 : lerp(2.0, 0, easeInOutQuad(landU));
+      const sy = t < 88.8 ? Math.sin(leapU * Math.PI * 0.69) * 2.4 : lerp(2.0, 0, easeInOutQuad(landU));
       actors.sanwa?.setVisible(true).setPosition(sx, sy, -1.4).setFacing(1).setPose(t < 89.4 ? 'leap' : 'heroic');
       actors.snake?.setVisible(true).setPosition(lerp(135.8, 136.6, landU), 0.1, -2.0).setFacing(-1).setPose('struggle');
 
@@ -749,16 +785,16 @@ export class FilmDirector {
       p?.setMirror({ active: false, beam: 0, shattered: 1 });
 
       const wrapP = smoothstep(92.4, 98.5, t);
-      const thrust = pulseBell(t, 92.8, 1.25);
-      const recoil = smoothstep(93.2, 95.65, t);
-      const hold = smoothstep(94.5, 97.2, t);
+      const thrust = pulseBell(t, 92.9, 1.04);
+      const recoil = smoothstep(93.92, 95.35, t);
+      const hold = smoothstep(94.63, 96.85, t);
       const sx = 131.05 + 0.34 * thrust - 0.62 * recoil;
       const sy = 0.2 - 0.12 * hold;
       const sz = -0.4 + 0.68 * recoil;
       actors.sanwa?.setVisible(true)
         .setPosition(sx, sy, sz)
         .setFacing(1)
-        .setPose(wrapP > 0.35 ? 'bound' : 'attack')
+        .setPose('hold').setDirectedReach(.87 * thrust - .43 * recoil)
         .setPhysicalBeat({ lean: 0.31 * thrust - 0.37 * recoil + 0.17 * hold, turn: -0.28 * recoil, crouch: 0.08 * hold, still: 0.38 * hold });
       actors.snake?.setVisible(true)
         .setPosition(133.8 + 0.30 * recoil, 0.25, -1.0)
@@ -794,17 +830,21 @@ export class FilmDirector {
     if (t < 113.5) {
       // Siwa fire-dragon & Wuwa high-pressure water torrent storm the palace!
       p?.setRuyiOnCouch(true);
-      const enterU = easeOutCubic(invLerp(102.0, 105.5, t));
+      const enterU = smoothstep(102.06, 105.17, t);
       const siwaX = lerp(125.2, 128.0, enterU);
       const wuwaX = lerp(124.8, 127.8, enterU);
-      const fireInt = smoothstep(105.2, 106.5, t);
+      const fireInt = smoothstep(105.65, 106.55, t) * (1 - .46 * smoothstep(108.4, 111.4, t));
       const waterInt = smoothstep(108.2, 109.5, t);
 
-      actors.siwa?.setVisible(true).setPosition(siwaX, 0, -0.7).setFacing(1).setPose(fireInt > 0.2 ? 'cast' : 'run');
-      actors.wuwa?.setVisible(true).setPosition(wuwaX, 0, 0.45).setFacing(1).setPose(waterInt > 0.2 ? 'cast' : 'run');
+      actors.siwa?.setVisible(true).setPosition(siwaX, 0, -0.7).setFacing(1).setPose('hold').setGroundedTravel(enterU, 2.8, 0)
+        .setDirectedReach(.72 * pulseBell(t, 105.74, 1.05))
+        .setPhysicalBeat({ lean: .23 * fireInt, turn: .15 * fireInt, still: .36 });
+      actors.wuwa?.setVisible(true).setPosition(wuwaX, 0, 0.45).setFacing(1).setPose('hold').setGroundedTravel(enterU, 3, 0)
+        .setDirectedReach(.82 * pulseBell(t, 108.55, 1.12))
+        .setPhysicalBeat({ lean: -.17 * waterInt, turn: -.16 * waterInt, still: .30 });
 
-      fx?.setSiwaFire({ origin: [siwaX + 0.7, 1.5, -0.6], target: [133.5, 1.4, -0.9], intensity: fireInt });
-      fx?.setWuwaWater({ origin: [wuwaX + 0.7, 1.4, 0.45], target: [133.8, 1.2, 0.25], intensity: waterInt });
+      fx?.setSiwaFire({ origin: [siwaX + 0.7, 1.5, -0.6], target: [133.5, 1.4, -0.9], intensity: fireInt * .63 });
+      fx?.setWuwaWater({ origin: [wuwaX + 0.7, 1.4, 0.45], target: [133.8, 1.2, 0.25], intensity: waterInt * .56 });
 
       const push = easeOutCubic(invLerp(108.5, 113.5, t));
       actors.toad?.setVisible(true).setPosition(lerp(132.2, 136.5, push), Math.sin(push * Math.PI) * 1.6, 0.3).setFacing(-1).setPose('struggle');
@@ -819,11 +859,11 @@ export class FilmDirector {
       actors.wuwa?.setVisible(true)
         .setPosition(128.2, lerp(0.95, 0.55, drunkP), 0.5)
         .setFacing(1)
-        .setPose(t < 116.2 ? 'idle' : 'drunk')
+        .setPose(t < 116.2 ? 'hold' : 'drunk').setDirectedReach(.8 * pulseBell(t, 115.54, .95))
         .setPhysicalBeat({ lean: 0.33 * pulseBell(t, 116.2, 1.25), crouch: 0.11 * pulseBell(t, 116.2, 1.25) });
       const check = smoothstep(116.25, 117.55, t);
       actors.siwa?.setVisible(true).setPosition(131.6 - 0.87 * check, 0, 0.15 + 0.65 * check)
-        .setFacing(-1).setPose(t > 116.25 && t < 117.55 ? 'walk' : 'idle')
+        .setFacing(-1).setPose('hold').setGroundedTravel(check, -.87, .65)
         .setPhysicalBeat({ lean: 0.22 * check, still: 0.63 * check });
       actors.snake?.setVisible(true).setPosition(130.2, 0, -1.1).setFacing(-1).setPose('cast');
 
@@ -841,7 +881,9 @@ export class FilmDirector {
       actors.siwa?.setVisible(true)
         .setPosition(132.2, 0.65, 0.5)
         .setFacing(1)
-        .setPose(frozen ? 'frozen' : 'cast');
+        .setPose(frozen ? 'frozen' : 'hold')
+        .setDirectedReach(.79 * pulseBell(t, 121.5, .91))
+        .setPhysicalBeat({ lean: -.29 * pulseBell(t, 122.55, 1.16), still: .76 });
       actors.snake?.setVisible(true).setPosition(134.8, 0.1, -0.2).setFacing(-1).setPose('cast');
 
       // Dying fire vs overpowering blizzard
@@ -852,7 +894,7 @@ export class FilmDirector {
       fx?.setBanquetTraps({
         ruyiOrigin: [134.1, 2.2, -0.1],
         iceTarget: [132.2, 1.6, 0.5],
-        blizzardIntensity: blizInt,
+        blizzardIntensity: blizInt * .59,
         winePos: [128.2, 1.35, 0.5],
         drunkSwirl: 0.7,
       });
@@ -894,10 +936,10 @@ export class FilmDirector {
     if (t < 137.0) {
       // Liuwa phases stealthily straight through closed stone gate!
       p?.setRuyiOnCouch(true);
-      const u = invLerp(132.0, 137.0, t);
+      const u = smoothstep(132.12, 136.85, t);
       const lx = lerp(119.0, 124.2, u);
-      actors.liuwa?.setVisible(true).setPosition(lx, 0.1, 0.75).setFacing(1).setStealth(0.86).setPose('walk');
-      fx?.setLiuwaTrick({ ghostPos: [lx, 1.2, 0.75], ghostPulse: 1.0 });
+      actors.liuwa?.setVisible(true).setPosition(lx, 0.1, 0.75).setFacing(1).setStealth(0.72 + .15 * pulseBell(t, 134.12, .85)).setPose('hold').setGroundedTravel(u, 5.2, 0);
+      fx?.setLiuwaTrick({ ghostPos: [lx, 1.2, 0.75], ghostPulse: .34 });
     } else if (t < 142.5) {
       // Snake scatters golden tracking powder & tags Liuwa with yellow flower -> moved onto Scorpion's nose!
       p?.setRuyiOnCouch(true);
@@ -911,7 +953,7 @@ export class FilmDirector {
       const flowerOnScorpion = t >= 139.6;
       fx?.setLiuwaTrick({
         ghostPos: [lx, 1.1, -0.35],
-        ghostPulse: 0.7,
+        ghostPulse: .34,
         powderPos: [129.5, 1.4, -0.5],
         powderProgress: invLerp(137.3, 139.6, t),
         flowerPos: flowerOnScorpion ? [131.2, 2.55, -0.4] : [lx - 0.35, 1.25, -0.2],
@@ -920,13 +962,15 @@ export class FilmDirector {
     } else if (t < 148.0) {
       // Scorpion & Centipede chase the yellow flower and knock each other out!
       p?.setRuyiOnCouch(true);
-      const clash = invLerp(142.5, 145.6, t);
+      const clash = smoothstep(142.64, 145.6, t);
       const ko = invLerp(145.6, 148.0, t);
-      const sx = t < 145.6 ? lerp(130.6, 131.4, Math.sin(clash * Math.PI)) : lerp(131.4, 130.2, ko);
-      const cx = t < 145.6 ? lerp(133.2, 132.1, Math.sin(clash * Math.PI)) : lerp(132.1, 133.6, ko);
+      const sx = t < 145.6 ? lerp(130.6, 131.4, clash) : lerp(131.4, 130.2, ko);
+      const cx = t < 145.6 ? lerp(133.2, 132.1, clash) : lerp(132.1, 133.6, ko);
 
-      actors.scorpion?.setVisible(true).setPosition(sx, t < 145.6 ? 0 : -ko * 0.4, -0.6).setFacing(1).setPose(t < 145.6 ? 'attack' : 'drunk');
-      actors.centipede?.setVisible(true).setPosition(cx, t < 145.6 ? 0 : -ko * 0.4, -0.6).setFacing(-1).setPose(t < 145.6 ? 'attack' : 'drunk');
+      actors.scorpion?.setVisible(true).setPosition(sx, t < 145.6 ? 0 : -ko * 0.4, -0.6).setFacing(1).setPose(t < 145.6 ? 'hold' : 'drunk')
+        .setPhysicalBeat({ lean: .22 * clash - .55 * pulseBell(t, 145.84, .48), still: .6 });
+      actors.centipede?.setVisible(true).setPosition(cx, t < 145.6 ? 0 : -ko * 0.4, -0.6).setFacing(-1).setPose(t < 145.6 ? 'hold' : 'drunk')
+        .setPhysicalBeat({ lean: .23 * clash - .57 * pulseBell(t, 145.84, .48), still: .6 });
       const peek = smoothstep(145.4, 146.8, t);
       actors.liuwa?.setVisible(true).setPosition(129.35 + 0.24 * peek, 0.1, 1.0).setFacing(1).setStealth(0.65).setPose('idle')
         .setPhysicalBeat({ lean: 0.22 * peek, crouch: 0.18 * (1 - peek), still: 0.81 });
@@ -938,19 +982,25 @@ export class FilmDirector {
       flash = pulseBell(t, 145.6, 0.14) * 0.08;
     } else if (t < 153.0) {
       // Liuwa sneaks to Demon Couch & steals Golden Ruyi!
-      const u = invLerp(148.0, 153.0, t);
+      const contact = pulseBell(t, 150.2, .71);
       const stolen = t >= 150.2;
       p?.setRuyiOnCouch(!stolen);
 
-      const lx = stolen ? lerp(136.6, 134.8, invLerp(150.2, 153.0, t)) : lerp(135.2, 136.6, invLerp(148.0, 150.2, t));
-      const lz = stolen ? lerp(-1.55, -1.2, invLerp(150.2, 153.0, t)) : lerp(-1.2, -1.55, invLerp(148.0, 150.2, t));
-      actors.liuwa?.setVisible(true).setPosition(lx, 0.1, lz).setFacing(stolen ? -1 : 1).setStealth(0.82).setPose('walk');
+      const travel = stolen ? smoothstep(150.35, 153, t) : smoothstep(148, 149.98, t);
+      const lx = stolen ? lerp(136.6, 134.8, travel) : lerp(135.2, 136.6, travel);
+      const lz = stolen ? lerp(-1.55, -1.20, travel) : lerp(-1.20, -1.55, travel);
+      const couch = p?.getRuyiWorldPos(this._tmpVecB);
+      const liftRuyi = smoothstep(150.20, 150.83, t);
+      const held = [lx - .26, 1.31, lz + .21];
+      actors.liuwa?.setVisible(true).setPosition(lx, 0.1, lz).setFacing(stolen ? -1 : 1).setStealth(0.58 + .21 * travel).setPose('hold')
+        .setGroundedTravel(travel, stolen ? -1.8 : 1.4, stolen ? .35 : -.35).setDirectedReach(contact)
+        .setPhysicalBeat({ lean: .18 * contact, turn: -.28 * contact, still: .68 * contact });
       actors.snake?.setVisible(true).setPosition(134.5, 0.1, -1.75).setFacing(-1).setPose('drunk');
 
       fx?.setLiuwaTrick({
         ghostPos: [lx, 1.1, lz],
         ghostPulse: 0.75,
-        ruyiPos: [lx - 0.25, 1.35, lz + 0.15],
+        ruyiPos: couch ? held.map((coord, i) => lerp(couch.getComponent(i), coord, liftRuyi)) : held,
         ruyiVisible: stolen,
       });
     } else {
@@ -982,7 +1032,7 @@ export class FilmDirector {
         ruyiPos: [130.6, 1.5, 0.75],
         ruyiVisible: true,
         ruyiBeamTarget: [132.2, 1.6, 0.5],
-        ruyiBeamIntensity: beamInt,
+        ruyiBeamIntensity: beamInt * .57,
       });
       flash = pulseBell(t, 154.2, 0.15) * 0.11;
     }
@@ -1001,14 +1051,15 @@ export class FilmDirector {
 
     if (t < 164.0) {
       // Corrupted Qiwa emerges beside Snake & Scorpion on altar, bows to Snake ("妈妈")
-      al?.setCauldron({ fire: 0.65, lidOpen: 0, shattered: 0 });
-      const rise = easeOutCubic(invLerp(158.0, 161.5, t));
+      al?.setCauldron({ fire: .22, lidOpen: 0, shattered: 0 });
+      const rise = smoothstep(158, 160.95, t);
+      const bow = pulseBell(t, 162.13, 1.27);
       actors.qiwa?.setVisible(true)
         .setPosition(195.0, lerp(0.15, 0.52, rise), 2.15)
         .setFacing(-1)
         .setCorrupted(1.0)
-        .setPose(t < 161.5 ? 'heroic' : 'cast')
-        .setPhysicalBeat({ lean: 0.42 * pulseBell(t, 162.1, 1.5), crouch: 0.12 * pulseBell(t, 162.1, 1.5), still: 0.54 * pulseBell(t, 162.1, 1.5) });
+        .setPose('hold').setDirectedReach(.68 * smoothstep(162.55, 163.90, t))
+        .setPhysicalBeat({ lean: .52 * bow, turn: -.28 * bow, crouch: .105 * bow, still: .93 });
       actors.snake?.setVisible(true).setPosition(192.0, 0.52, 1.55).setFacing(1).setPose('cast');
       actors.scorpion?.setVisible(true).setPosition(198.0, 0.52, 1.55).setFacing(-1).setPose('heroic');
 
@@ -1022,7 +1073,7 @@ export class FilmDirector {
       });
     } else if (t < 179.0) {
       // Qiwa raises Purple-Gold Gourd -> massive centrifugal vortex sucks ALL 6 elder brothers in!
-      al?.setCauldron({ fire: 0.85, lidOpen: 0, shattered: 0 });
+      al?.setCauldron({ fire: .25, lidOpen: 0, shattered: 0 });
       const gourdPos = this._tmpVecA.set(196.0, 2.32, 2.15);
       const vortexInt = smoothstep(164.5, 166.5, t);
 
@@ -1035,7 +1086,7 @@ export class FilmDirector {
         visible: true,
         scale: 1.25,
         corrupted: 1.0,
-        vortexIntensity: vortexInt,
+        vortexIntensity: vortexInt * .55,
       });
 
       // Six elder brothers rush in then spiral one-by-one into Qiwa's gourd (including unstealthed Liuwa!)
@@ -1051,7 +1102,7 @@ export class FilmDirector {
       brothers.forEach((b, i) => {
         const sp = invLerp(b.suckStart, b.suckEnd, t);
         if (sp >= 0.995) return;
-        const approach = easeOutCubic(invLerp(164.0, 167.2, t));
+        const approach = smoothstep(164 + i * .11, 167.23 + i * .14, t);
         b.a?.setVisible(true)
           .setPosition(lerp(b.x - 2.6, b.x, approach), 0.52, b.z + (i % 2 ? -0.38 : 0.45) * (1 - approach))
           .setFacing(1);
@@ -1062,7 +1113,9 @@ export class FilmDirector {
         if (sp > 0.01) {
           b.a?.setPose('sucked').setSuction(gourdPos, sp);
         } else {
-          b.a?.setPose(t < 167.0 ? 'run' : 'struggle');
+          b.a?.setPose(approach < .99 ? 'hold' : 'struggle')
+            .setGroundedTravel(approach, 2.6, i % 2 ? .38 : -.45)
+            .setDirectedReach(-.44 * pulseBell(t, b.suckStart - .33, .79));
         }
       });
     } else {
@@ -1070,7 +1123,7 @@ export class FilmDirector {
       const dropU = invLerp(179.0, 182.2, t);
       const arcU = easeInOutQuad(dropU);
       const lidClose = 1.0 - smoothstep(182.0, 184.0, t);
-      al?.setCauldron({ fire: 1.0, lidOpen: lidClose, shattered: 0 });
+      al?.setCauldron({ fire: .2 + .34 * pulseBell(t, 182.35, .92), lidOpen: lidClose, shattered: 0 });
 
       actors.snake?.setVisible(true).setPosition(191.8, 0.52, 1.45).setFacing(1).setPose('heroic');
       actors.scorpion?.setVisible(true).setPosition(198.2, 0.52, 1.45).setFacing(-1).setPose('heroic');
@@ -1096,104 +1149,91 @@ export class FilmDirector {
   // =========================================================================
   _choreographAct8(t, actors, fx, ws) {
     const al = ws?.alchemy;
-    let mood = 'alchemy_inferno';
-    let flash = 0;
+    const grandpa = actors.grandpa;
+    const scorpion = actors.scorpion;
+    const fire = 0.18 + 0.38 * pulseBell(t, 194.9, 1.3)
+      + 0.32 * pulseBell(t, 207.9, 1.4);
+    const shatter = smoothstep(207.83, 209.27, t);
+    const rim = 199.04;
 
     al?.setSealMountain(0);
+    al?.setCauldron({ fire, lidOpen: 0.09 + 0.91 * smoothstep(197.46, 198.48, t), shattered: shatter });
 
-    if (t < 194.0) {
-      // Grandpa rushes toward Bronze Cauldron holding Sacred Seven-Color Lotus
-      al?.setCauldron({ fire: 1.0, lidOpen: 0.08, shattered: 0 });
-      const u = invLerp(188.0, 194.0, t);
-      const gx = lerp(189.4, 193.5, u);
-      actors.grandpa?.setVisible(true).setPosition(gx, 0.52, 1.85).setFacing(1).setPose('run');
-      actors.scorpion?.setVisible(true).setPosition(lerp(198.0, 196.4, u), 0.52, 1.80).setFacing(-1).setPose('run');
-      fx?.setLotusMiracle({
-        lotusPos: [gx + 0.55, 2.05, 1.90],
-        lotusVisible: true,
-        bloomProgress: 0.32,
-      });
-    } else if (t < 200.0) {
-      // Scorpion strikes Grandpa down; dying Grandpa hurls Sacred Seven-Color Lotus into Cauldron!
-      const throwU = invLerp(196.2, 199.6, t);
-      al?.setCauldron({ fire: 1.0, lidOpen: smoothstep(196.0, 199.5, t) * 0.45, shattered: 0 });
+    if (t < 207.83) {
+      const walk = smoothstep(188, 192.6, t);
+      const fall = smoothstep(194.86, 195.5, t);
+      const rise = smoothstep(196.25, 197.32, t) * (1 - smoothstep(197.85, 198.7, t));
+      const body = {
+        x: lerp(189.6, 192.67, walk) - 0.25 * fall + 0.36 * rise,
+        y: 0.52 + 0.15 * fall - 0.07 * rise,
+        z: 1.62 + 0.32 * fall,
+        tilt: 0.10 * (1 - walk) + 0.28 * fall + 0.14 * rise,
+        yaw: 0.27 + 0.14 * rise,
+      };
+      const arm = -1.27 + 0.62 * fall - 0.96 * rise + 0.67 * smoothstep(198.5, 199.15, t);
+      grandpa?.setVisible(true).setPosition(body.x, body.y, body.z).setFacing(1)
+        .setPose('hold')
+        .setPhysicalBeat({ lean: body.tilt, turn: body.yaw, still: 1 })
+        .setLotusArm(arm).setAuraIntensity(0.08).setGroundedTravel(walk, 3.07, 0);
+      if (grandpa) grandpa.group.scale.y = 1 - 0.22 * fall + 0.06 * rise;
+      if (grandpa && t >= 194.8) grandpa.hurtFlash = pulseBell(t, 194.96, 0.17) * 0.38;
 
-      const hit = t >= 195.2;
-      const fall = smoothstep(195.2, 195.95, t);
-      const release = pulseBell(t, 197.0, 1.28);
-      actors.scorpion?.setVisible(true)
-        .setPosition(lerp(196.4, 194.8, smoothstep(194.0, 195.3, t)), 0.52, 1.80)
-        .setFacing(-1)
-        .setPose(t < 196.4 ? 'attack' : 'heroic');
-
-      actors.grandpa?.setVisible(true)
-        .setPosition(193.5 - 0.3 * fall, 0.52 - 0.27 * fall, 1.85 + 0.24 * fall)
-        .setFacing(1)
-        .setPose(hit ? 'idle' : 'run')
-        .setPhysicalBeat({ lean: -0.44 * fall + 0.75 * release, crouch: 0.165 * fall * (1 - release), still: 0.85 * fall });
-      if (hit && actors.grandpa) actors.grandpa.hurtFlash = Math.max(0, 1.0 - invLerp(195.2, 197.5, t));
-
-      const lx = lerp(193.8, 195.0, throwU);
-      const ly = lerp(1.8, 3.3, throwU) + Math.sin(throwU * Math.PI) * 1.9;
-      const lz = lerp(1.85 + 0.24 * fall, -1.65, throwU);
-      fx?.setLotusMiracle({
-        lotusPos: [lx, ly, lz],
-        lotusVisible: true,
-        bloomProgress: lerp(0.35, 0.72, throwU),
-      });
-      flash = pulseBell(t, 195.25, 0.15) * 0.10;
-    } else if (t < 207.5) {
-      // Sacred Lotus blooms sky-high, purifying Qiwa & linking 7 Spirit Orbs in Seven-Heart Crest!
-      const u = invLerp(200.0, 207.5, t);
-      al?.setCauldron({ fire: lerp(1.0, 0.8, u), lidOpen: lerp(0.45, 0.95, u), shattered: 0 });
-      actors.grandpa?.setVisible(true).setPosition(193.2, 0.25, 1.85).setFacing(1).setPose('bound');
-      actors.scorpion?.setVisible(true).setPosition(197.6, 0.52, 1.80).setFacing(-1).setPose('struggle');
-
-      fx?.setLotusMiracle({
-        lotusPos: [195.0, 3.65, -1.2],
-        lotusVisible: true,
-        bloomProgress: lerp(0.72, 1.0, smoothstep(0.0, 0.5, u)),
-        orbsCenter: [195.0, 4.2, -0.5],
-        orbsProgress: smoothstep(0.15, 0.92, u),
-      });
-    } else {
-      // 207.5..214s: GOLDEN EXPLOSION! Bronze Cauldron shatters & all 7 purified brothers burst free!
-      const shP = invLerp(207.7, 210.5, t);
-      const leapP = easeOutCubic(invLerp(207.8, 211.5, t));
-      if (t >= 209.5) mood = 'apotheosis_gold';
-
-      al?.setCauldron({ fire: Math.max(0, 0.9 - shP), lidOpen: 1.0, shattered: shP });
-      flash = pulseBell(t, 207.9, 0.18) * 0.14;
-
-      const seven = [
-        actors.dawa,
-        actors.erwa,
-        actors.sanwa,
-        actors.siwa,
-        actors.wuwa,
-        actors.liuwa,
-        actors.qiwa,
-      ];
-      seven.forEach((a, i) => {
-        const spreadX = (i - 3) * 1.45;
-        const arcY = 1.6 + Math.cos(((i - 3) / 3) * Math.PI * 0.5) * 2.2;
-        a?.setVisible(true)
-          .setPosition(195.0 + spreadX * leapP, lerp(2.2, arcY, leapP), 1.35 + (i % 3) * 0.3)
-          .setFacing(i < 3 ? 1 : -1)
-          .setCorrupted(0)
-          .setPose(leapP < 0.7 ? 'leap' : 'heroic');
-      });
-
-      fx?.setLotusMiracle({
-        lotusPos: [195.0, 4.6, -1.2],
-        lotusVisible: shP < 0.75,
-        bloomProgress: 1.0,
-        orbsCenter: [195.0, 4.8, -0.5],
-        orbsProgress: 1.0,
+      const advance = smoothstep(192.75, 194.95, t);
+      const lunge = pulseBell(t, 194.86, 0.80);
+      const recoil = smoothstep(195.05, 195.85, t) + 0.38 * smoothstep(199.1, 201.7, t);
+      const scorpionX = 197.32 - 2.31 * advance + 1.76 * recoil;
+      scorpion?.setVisible(true).setPosition(scorpionX, 0.52, 1.38)
+        .setFacing(-1).setPose('hold').setAuraIntensity(0.14)
+        .setPhysicalBeat({ lean: lunge * 0.26 - 0.17 * recoil, turn: 0.42 - lunge * 0.36, still: 1 });
+      if (lunge > .012) fx?.setScorpionStrike({
+        base: [scorpionX + .25, 3.18, 1.2],
+        target: [lerp(scorpionX - .38, body.x + .49, lunge), lerp(3.86, 2.0, lunge), lerp(1.28, body.z + .09, lunge)],
+        strength: lunge,
       });
     }
 
-    return { mood, flash };
+    if (t < 197.48) {
+      // Grip will be resolved against the posed wrist after the cast update.
+      fx?.setLotusMiracle({ lotusPos: [192.6, 1.3, 2.5], lotusVisible: true, bloomProgress: 0.26, paperLotus: true });
+    } else if (t < rim) {
+      const u = invLerp(197.48, rim, t);
+      // Seamless launch: this is the same fixed pose as the release frame.
+      const arm = -1.61;
+      const start = this._tmpVecA;
+      armGripAtRelease(start, arm);
+      fx?.setLotusMiracle({
+        lotusPos: [lerp(start.x, 195, u), lerp(start.y + 0.08, 3.24, u) + 1.83 * 4 * u * (1 - u), lerp(start.z + 0.025, -1.65, u)],
+        lotusVisible: true, bloomProgress: 0.26 + 0.18 * u, paperLotus: true,
+      });
+    } else if (t < 207.83) {
+      const bloom = smoothstep(199.46, 201.7, t);
+      const link = smoothstep(201.3, 207.04, t);
+      fx?.setLotusMiracle({
+        lotusPos: [195, lerp(3.24, 4.06, bloom), -1.65],
+        lotusVisible: t < 199.16 || t >= 199.46,
+        bloomProgress: lerp(0.44, 1, bloom), paperLotus: true,
+        orbsCenter: [195, 4.18, -1.12], orbsProgress: link,
+      });
+    } else {
+      const seven = [actors.dawa, actors.erwa, actors.sanwa, actors.siwa, actors.wuwa, actors.liuwa, actors.qiwa];
+      seven.forEach((actor, i) => {
+        const u = easeOutCubic(invLerp(207.85 + i * 0.038, 210.9 + i * 0.038, t));
+        const x = (i - 3) * 1.45;
+        const ground = 0.51;
+        const lift = Math.sin(Math.PI * u) * 1.6;
+        actor?.setVisible(u > 0.08).setPosition(195 + x * u, lerp(2.15, ground, u) + lift, lerp(-1.47, 1.23 - (1 - Math.abs(i - 3) / 3) * 1.12, u))
+          .setPose(u < 0.84 ? 'leap' : 'heroic').setFacing(i < 3 ? 1 : -1)
+          .setCorrupted(0).setAuraIntensity(0.15 + 0.23 * (1 - u));
+      });
+      fx?.setLotusMiracle({
+        lotusPos: [195, 4.06 + shatter * 0.45, -1.65],
+        lotusVisible: shatter < 0.7, bloomProgress: 1, paperLotus: true,
+        orbsCenter: [195, 4.18, -1.12], orbsProgress: 1 - smoothstep(207.83, 208.76, t),
+      });
+    }
+    return { mood: 'alchemy_inferno', flash: 0.018 * pulseBell(t, 194.91, 0.15)
+      + 0.035 * pulseBell(t, 199.09, 0.26) + 0.105 * pulseBell(t, 207.99, 0.24) };
+
   }
 
   // =========================================================================
@@ -1223,13 +1263,15 @@ export class FilmDirector {
         { a: actors.qiwa,  x: 194.5, y: 1.2, z: 1.90 },
       ];
       const blocking = heroes.map((h, i) => {
-        const depth = i % 2 ? -0.66 : 0.50;
-        const approach = (1 - advance) * (0.65 + 0.13 * (6 - i));
-        return [h.x - approach, h.y, h.z + depth];
+        const fromX = 195 + (i - 3) * 1.45;
+        const depth = i % 2 ? -.53 : .43;
+        const fromZ = 1.23 - (1 - Math.abs(i - 3) / 3) * 1.12;
+        return [lerp(fromX, h.x, advance), lerp(.51, h.y, advance), lerp(fromZ, h.z + depth, advance)];
       });
       heroes.forEach((h, i) => {
         h.a?.setVisible(true).setPosition(...blocking[i]).setFacing(1).setCorrupted(0)
-          .setPose(advance < 0.58 ? 'run' : 'cast')
+          .setPose('hold').setGroundedTravel(advance, h.x - (195 + (i - 3) * 1.45), h.z - .76)
+          .setDirectedReach(.82 * pulseBell(t, 217.2 + i * .068, .87))
           .setPhysicalBeat({ lean: 0.17 * advance * (1 - resolve), still: 0.78 * resolve });
       });
 
@@ -1241,15 +1283,15 @@ export class FilmDirector {
         visible: true,
         scale: 1.32,
         corrupted: 0,
-        vortexIntensity: 0.9,
+        vortexIntensity: .42 * smoothstep(215.3, 217.4, t),
         petrifyRay: smoothstep(216.8, 218.5, t),
       });
 
       if (t < 217.8) {
         const [fireX, fireY, fireZ] = blocking[3];
         const [waterX, waterY, waterZ] = blocking[4];
-        fx?.setSiwaFire({ origin: [fireX + 0.4, fireY + 1.0, fireZ], target: [197.5, 1.6, 1.55], intensity: 0.75 });
-        fx?.setWuwaWater({ origin: [waterX + 0.4, waterY + 1.0, waterZ], target: [197.4, 1.3, 1.65], intensity: 0.75 });
+        fx?.setSiwaFire({ origin: [fireX + 0.4, fireY + 1.0, fireZ], target: [197.5, 1.6, 1.55], intensity: .45 * smoothstep(215.9, 216.9, t) });
+        fx?.setWuwaWater({ origin: [waterX + 0.4, waterY + 1.0, waterZ], target: [197.4, 1.3, 1.65], intensity: .45 * smoothstep(215.9, 216.9, t) });
       }
 
       const villains = [
@@ -1280,7 +1322,7 @@ export class FilmDirector {
     } else {
       // 228..240s: Golden clouds part & radiant Xiaojingang appears atop the Seven-Color Peak!
       al?.setSealMountain(1.0);
-      const u = easeOutCubic(invLerp(228.0, 234.0, t));
+      const u = smoothstep(228.0, 233.65, t);
 
       actors.xiaojingang?.setVisible(true)
         .setPosition(lerp(194.7, 195.0, u), lerp(5.1, 6.0, u), lerp(-0.2, 0.38, u))
@@ -1288,11 +1330,12 @@ export class FilmDirector {
         .setGiantScale(lerp(0.85, 1.18, u))
         .setAuraIntensity(0.48)
         .setPose('heroic')
-        .setPhysicalBeat({ lean: 0.24 * (1 - u), turn: -0.39 * (1 - u), still: 0.85 * u });
+        .setPhysicalBeat({ lean: 0.24 * (1 - u), turn: -.39 * (1 - u) + .105 * smoothstep(233.5, 236.7, t), still: .91 * u });
 
       fx?.setLotusMiracle({
         orbsCenter: [195.0, lerp(6.8, 7.5, u), -0.6],
-        orbsProgress: 0.92,
+        orbsProgress: .88 * (1 - smoothstep(234.1, 239.52, t)),
+        paperLotus: true,
       });
       flash = pulseBell(t, 228.4, 0.16) * 0.10;
     }

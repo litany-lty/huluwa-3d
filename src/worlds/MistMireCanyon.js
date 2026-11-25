@@ -501,8 +501,8 @@ export class MistMireCanyon {
       const ribbonMat = new THREE.MeshStandardMaterial({
         color: ribbonColors[r],
         emissive: ribbonColors[r],
-        emissiveIntensity: 0.85,
-        roughness: 0.35,
+        emissiveIntensity: .30,
+        roughness: .69,
         transparent: true,
         opacity: 0.0,
         side: THREE.DoubleSide,
@@ -549,18 +549,18 @@ export class MistMireCanyon {
     this._illusionGroup.visible = d > 0.005;
 
     for (const r of this._silkRibbons) {
-      r.mat.opacity = d * 0.78;
+      r.mat.opacity = d * .39;
       r.mesh.scale.setScalar(0.45 + d * 0.6);
     }
 
     for (const eye of this._demonEyes) {
       eye.lidGroup.scale.set(0.6 + d * 0.4, Math.max(0.02, d), 1);
-      eye.auraMat.opacity = d * 0.78;
+      eye.auraMat.opacity = d * .32;
       eye.scleraMat.opacity = d * 0.96;
       eye.irisMat.opacity = d * 0.92;
     }
 
-    this._dreamLight.intensity = d * 5.0;
+    this._dreamLight.intensity = d * 2.0;
   }
 
   update(t = 0) {
@@ -626,7 +626,7 @@ export class MistMireCanyon {
         eye.pupil.scale.set(slitPulse, 1, 1);
         eye.pupil.position.x = Math.sin(t * 1.2 + eye.phase) * 0.14;
       }
-      this._dreamLight.intensity = this._dreamLevel * (4.6 + Math.sin(t * 5.2) * 0.85);
+      this._dreamLight.intensity = this._dreamLevel * (2.1 + Math.sin(t * 3.8) * .28);
     }
   }
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { groundedFoot } from '../director/PerformanceMath.js';
 
 const TEMP_COLOR = new THREE.Color();
 const TEMP_EMISSIVE = new THREE.Color();
@@ -15,6 +16,18 @@ const COLOR_CORRUPT_EMISSIVE = new THREE.Color(0x52127a);
 const COLOR_HURT_EMISSIVE = new THREE.Color(0xd9381e);
 const COLOR_HEROIC_EMISSIVE = new THREE.Color(0x664810);
 const TEMP_VEC3 = new THREE.Vector3();
+const LOTUS_HAND = new THREE.Vector3(-0.5484, 0.9483, 0.2021);
+
+// Grandpa's existing GLB is one baked mesh. Hinge the camera-side sleeve
+// about the shoulder and blend into the jacket, rather than rotating the torso.
+function hingeLotusArm(out, x, y, z, bend, mask) {
+  const dy = y - 1.79, dz = z - 0.27;
+  const a = bend * mask;
+  const c = Math.cos(a), s = Math.sin(a);
+  out.set(x + 0.10 * Math.abs(s), 1.79 + dy * c - dz * s, 0.27 + dy * s + dz * c);
+}
+const ARM_POINT = new THREE.Vector3();
+
 
 function collectDeformableParts(rootObj) {
   const parts = [];
@@ -148,6 +161,39 @@ export class PuppetActor {
     return this;
   }
 
+  // Use authored route distance instead of oscillating every actor in global time.
+  setGroundedTravel(progress, deltaX, deltaZ) {
+    const length = Math.hypot(deltaX, deltaZ);
+    if (!length || progress <= 0 || progress >= 1) return this;
+    const strain = Math.min(this.height * 0.59, length);
+    const count = Math.max(1, Math.round(length / strain));
+    const stride = length / count;
+    const d = progress * length;
+    this.gait = {
+      x: deltaX / length, z: deltaZ / length,
+      targets: [groundedFoot(d, length, stride, this.height * 0.10, 0),
+                groundedFoot(d, length, stride, this.height * 0.10, 1)],
+      cycle: d / stride,
+      envelope: Math.min(1, d / (stride * .24), (length - d) / (stride * .24)),
+    };
+    return this;
+  }
+
+  setDirectedReach(amount) {
+    this.directedReach = amount;
+    return this;
+  }
+
+  setLotusArm(bend) {
+    this.lotusArm = bend;
+    return this;
+  }
+
+  getLotusGrip(target) {
+    hingeLotusArm(target, LOTUS_HAND.x, LOTUS_HAND.y, LOTUS_HAND.z, this.lotusArm, 1);
+    return this.primaryParts[0].mesh.localToWorld(target);
+  }
+
   setPosition(x, y, z) {
     this.group.position.set(x, y, z);
     return this;
@@ -235,6 +281,9 @@ export class PuppetActor {
 
     this.pose = 'idle';
     this.setPhysicalBeat();
+    this.lotusArm = 0;
+    this.gait = null;
+    this.directedReach = 0;
     this.sinkDepth = 0;
     this.stealthAmount = 0;
     this.corruptedAmount = 0;
@@ -265,7 +314,7 @@ export class PuppetActor {
     const h = this.height;
     const halfW = w * 0.5 || 1;
     const invH = 1 / (h || 1);
-    const pose = this.pose || 'idle';
+    const pose = this.gait ? 'grounded' : this.pose || 'idle';
 
     this.scaleGroup.scale.setScalar(this.giantScale);
     this.flipGroup.scale.x = this.facing < 0 ? -1 : 1;
@@ -320,6 +369,10 @@ export class PuppetActor {
       bodyRotY = Math.sin(t * 1.2 + ph) * 0.08;
     }
 
+    if (this.gait) {
+      bodyY += 0.027 * h * this.gait.envelope * Math.sin(Math.PI * this.gait.cycle * 2) ** 2;
+      bodyRotY += 0.085 * this.gait.envelope * Math.sin(Math.PI * this.gait.cycle * 2);
+    }
     const live = 1 - this.beatStill;
     this.flipGroup.position.set(0, -this.sinkDepth + (bodyY + this.sinkDepth) * live - this.beatCrouch * h, 0);
     this.flipGroup.rotation.set(0, bodyRotY * live + this.beatTurn, bodyRotZ * live - this.facing * this.beatLean);
@@ -461,6 +514,38 @@ export class PuppetActor {
         arr[i3] = bx + (x - bx) * live;
         arr[i3 + 1] = by + (y - by) * live;
         arr[i3 + 2] = bz + (z - bz) * live;
+        if (this.gait && by < h * 0.46) {
+          const foot = this.gait.targets[bx < 0 ? 0 : 1];
+          const mask = Math.min(1, Math.max(0, (0.46 - by / h) / 0.30));
+          const footWeight = mask * mask * (3 - 2 * mask);
+          const invScale = 1 / Math.max(0.05, this.giantScale);
+          const angle = bodyRotY * live + this.beatTurn;
+          const localX = this.gait.x * Math.cos(angle) - this.gait.z * Math.sin(angle);
+          const localZ = this.gait.x * Math.sin(angle) + this.gait.z * Math.cos(angle);
+          arr[i3] += footWeight * foot.offset * localX * this.facing * invScale;
+          arr[i3 + 1] += footWeight * (foot.lift * invScale - bodyY * live);
+          arr[i3 + 2] += footWeight * foot.offset * localZ * invScale;
+        }
+
+        if (this.directedReach && bx < -w * 0.11 && by > h * 0.23 && by < h * .70) {
+          const edge = Math.min(1, Math.max(0, (-bx / w - .11) / .11));
+          const limb = Math.max(0, 1 - Math.abs(by / h - .45) / .23);
+          const reach = this.directedReach * edge * limb;
+          arr[i3] += reach * .16 * w;
+          arr[i3 + 1] += reach * .13 * h;
+          arr[i3 + 2] += reach * .20 * w;
+        }
+
+        if (this.lotusArm && bx < -0.37 && by > 0.72 && by < 1.9) {
+          const limb = Math.min(1, (-bx - 0.37) / 0.16);
+          const cuff = Math.min(1, (by - 0.72) / 0.15);
+          const shoulder = Math.min(1, (1.90 - by) / 0.26);
+          const mask = limb * cuff * shoulder;
+          hingeLotusArm(ARM_POINT, arr[i3], arr[i3 + 1], arr[i3 + 2], this.lotusArm, mask * mask * (3 - 2 * mask));
+          arr[i3] = ARM_POINT.x; arr[i3 + 1] = ARM_POINT.y; arr[i3 + 2] = ARM_POINT.z;
+        }
+
+
       }
 
       posAttr.needsUpdate = true;

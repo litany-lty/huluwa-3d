@@ -98,7 +98,7 @@ export class AlchemyCorePeak {
     const basaltMat = makePaperMat(this.assets, {
       color: 0x261c22,
       emissive: 0x210804,
-      emissiveIntensity: 0.25,
+      emissiveIntensity: .15,
       roughness: 0.92,
       metalness: 0.08,
       flatShading: true,
@@ -122,7 +122,17 @@ export class AlchemyCorePeak {
     ];
     for (let i = 0; i < spireConfigs.length; i++) {
       const [x, y, z, r, h] = spireConfigs[i];
-      const spire = new THREE.Mesh(createFacetedPeakGeometry(r, h, i + 3), basaltMat);
+      const cliff = createFacetedPeakGeometry(r, h, 3 + i);
+      const v = cliff.attributes.position;
+      const drift = Math.sin(i * 2.8) * 1.65;
+      for (let j=0; j<v.count; j++) {
+        const a = v.getY(j) / h;
+        const layer = (1 - a) * (a > .48 ? .08 : .21);
+        v.setX(j, v.getX(j) * (1 + layer) + drift * a * a);
+        v.setZ(j, v.getZ(j) * (1 + .14 * Math.cos(i*1.7)) + a * .55);
+      }
+      cliff.computeVertexNormals();
+      const spire = new THREE.Mesh(cliff, basaltMat);
       spire.position.set(x, y - 0.6, z);
       spire.castShadow = true;
       spire.receiveShadow = true;

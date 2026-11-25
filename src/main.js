@@ -286,8 +286,8 @@ async function bootstrap() {
   function titleCamera(T, mode) {
     if (mode === 'open') {
       const e = ss(0, OPEN_DUR, T);
-      lerp3(camTmpPos, [-9, 10.5, 26], [-2.5, 6.4, 17.6], e);
-      lerp3(camTmpLook, [2.5, 5.2, -3], [0, 3.4, -2.5], e);
+      lerp3(camTmpPos, [-10, 8.8, 23], [-4.8, 3.65, 13.5], e);
+      lerp3(camTmpLook, [2.4, 4.3, -2.65], [-2.0, 1.98, -1.36], e);
       return { pos: camTmpPos, look: camTmpLook, fov: 50 + (44 - 50) * e };
     }
     const e = ss(0, END_DUR, T - FILM_END);
@@ -364,7 +364,7 @@ async function bootstrap() {
       veilEl.style.opacity = String(o);
     }
     if (openingEl) {
-      const o = mode === 'open' ? ss(1.8, 3.8, T) * (1 - ss(13.2, 16.4, T)) : 0;
+      const o = mode === 'open' ? ss(1.3, 2.75, T) * (1 - ss(8.6, 10.5, T)) : 0;
       openingEl.style.opacity = String(o);
       openingEl.style.transform = `scale(${1 + 0.05 * Math.min(1, T / OPEN_DUR)})`;
     }
@@ -375,9 +375,9 @@ async function bootstrap() {
         endingEl.style.background = `rgba(8,6,4,${0.42 * ss(0.6, 3, e)})`;
         const vh = window.innerHeight;
         const h = creditsEl ? creditsEl.offsetHeight : 600;
-        const y = vh - Math.max(0, Math.min(1, (e - 1.5) / 20.5)) * (vh + h);
+        const y = vh - Math.max(0, Math.min(1, (e - 1.1) / 16.6)) * (vh + h);
         if (creditsEl) creditsEl.style.top = `${y}px`;
-        if (endMarkEl) endMarkEl.style.opacity = String(ss(21.5, 24.5, e));
+        if (endMarkEl) endMarkEl.style.opacity = String(ss(18.1, 20.6, e) * (1 - ss(25.8, 29.6, e)));
       } else {
         endingEl.style.opacity = '0';
       }

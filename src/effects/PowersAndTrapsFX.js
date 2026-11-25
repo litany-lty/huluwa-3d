@@ -210,7 +210,37 @@ export class PowersAndTrapsFX {
     this._buildQiwaGourd();
     this._buildLotusMiracle();
 
+    // Articulated chitin insert used only for the short Scorpion contact.
+    this._strike = new THREE.Group();
+    this._strikePoints = Array.from({length: 9}, () => new THREE.Vector3());
+    const shell = new THREE.MeshStandardMaterial({
+      color: 0x794a39, emissive: 0x241710, emissiveIntensity: 0.32, roughness: 0.79,
+    });
+    const tip = new THREE.MeshStandardMaterial({ color: 0x442f33, roughness: 0.85 });
+    const shellGeo = new THREE.CylinderGeometry(.81, 1, 1, 7, 1);
+    for (let i=0; i<7; i++) this._strike.add(new THREE.Mesh(shellGeo, shell));
+    this._strike.add(new THREE.Mesh(new THREE.ConeGeometry(1, 1, 7), tip));
+    this.root.add(this._strike);
+
     this.resetAll();
+  }
+
+  setScorpionStrike({ base, target, strength }) {
+    const curveStart = this._strikePoints[0].fromArray(base);
+    const curveEnd = this._strikePoints[8].fromArray(target);
+    this._strike.visible = strength > .012;
+    for (let i=1; i<8; i++) {
+      const u = i / 8;
+      this._strikePoints[i].lerpVectors(curveStart, curveEnd, u);
+      this._strikePoints[i].y += Math.sin(u * Math.PI) * (.58 + .34 * strength);
+      this._strikePoints[i].z += Math.sin(u * Math.PI) * .16;
+    }
+    for (let i=0; i<8; i++) {
+      const part = this._strike.children[i];
+      const dist = orientSegment(part, this._strikePoints[i], this._strikePoints[i+1]);
+      const r = .225 - .019 * i;
+      part.scale.set(r, dist + (i === 7 ? 0 : .075), r);
+    }
   }
 
   _tex(key) {
@@ -1351,6 +1381,17 @@ export class PowersAndTrapsFX {
     const lotusSprite = this._modelOrPlane('prop_lotus', 0xffffff, 2.4, 2.4, 0.98, false, true);
     lotusSprite.position.y = 0.05;
     lotusGroup.add(lotusSprite);
+    const paperStem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.035, 0.045, 0.52, 6),
+      new THREE.MeshStandardMaterial({ color: 0x637234, roughness: 0.91 }),
+    );
+    paperStem.position.y = -0.19;
+    const paperSeed = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.19, 1),
+      new THREE.MeshStandardMaterial({ color: 0xf0b849, roughness: 0.84 }),
+    );
+    paperSeed.position.y = 0.22;
+    lotusGroup.add(paperStem, paperSeed);
 
     const lotusGlow = makeGlowPlane(this.glowTex, 0xfff0a8, 4.2, 4.2, 0.72, true);
     lotusGlow.position.y = 0.4;
@@ -1436,6 +1477,9 @@ export class PowersAndTrapsFX {
     this._fxLotus = {
       group: g,
       lotusGroup,
+      lotusSprite,
+      paperStem,
+      paperSeed,
       lotusGlow,
       petals,
       orbsGroup,
@@ -1452,6 +1496,7 @@ export class PowersAndTrapsFX {
     lotusPos,
     lotusVisible = false,
     bloomProgress = 0,
+    paperLotus = false,
     orbsCenter,
     orbsProgress = 0,
     rainbowCenter,
@@ -1460,6 +1505,7 @@ export class PowersAndTrapsFX {
     const s = this._active.lotus;
     s.lotusVisible = Boolean(lotusVisible);
     s.bloomProgress = clamp01(bloomProgress);
+    s.paperLotus = paperLotus;
     s.orbsProgress = clamp01(orbsProgress);
     s.rainbowProgress = clamp01(rainbowProgress);
     s.active = s.lotusVisible || s.orbsProgress > 0.005 || s.rainbowProgress > 0.005;
@@ -1486,7 +1532,7 @@ export class PowersAndTrapsFX {
       banquet: { active: false, ruyiOrigin: new THREE.Vector3(), iceTarget: new THREE.Vector3(), blizzardIntensity: 0, winePos: new THREE.Vector3(), drunkSwirl: 0 },
       liuwa: { active: false, ghostPos: new THREE.Vector3(), ghostPulse: 0, powderPos: new THREE.Vector3(), powderProgress: 0, flowerPos: new THREE.Vector3(), flowerVisible: false, ruyiPos: new THREE.Vector3(), ruyiVisible: false, ruyiBeamTarget: new THREE.Vector3(), ruyiBeamIntensity: 0 },
       qiwaGourd: { active: false, pos: new THREE.Vector3(), targetPos: new THREE.Vector3(), visible: false, scale: 1, corrupted: 0, vortexIntensity: 0, petrifyRay: 0 },
-      lotus: { active: false, lotusPos: new THREE.Vector3(), lotusVisible: false, bloomProgress: 0, orbsCenter: new THREE.Vector3(), orbsProgress: 0, rainbowCenter: new THREE.Vector3(), rainbowProgress: 0 },
+      lotus: { active: false, lotusPos: new THREE.Vector3(), lotusVisible: false, bloomProgress: 0, paperLotus: false, orbsCenter: new THREE.Vector3(), orbsProgress: 0, rainbowCenter: new THREE.Vector3(), rainbowProgress: 0 },
     };
 
     this._fxSealStorm.group.visible = false;
@@ -1502,6 +1548,7 @@ export class PowersAndTrapsFX {
     this._fxLiuwa.group.visible = false;
     this._fxQiwaGourd.group.visible = false;
     this._fxLotus.group.visible = false;
+    this._strike.visible = false;
   }
 
   update(t = 0) {
@@ -1724,7 +1771,7 @@ export class PowersAndTrapsFX {
       const dist = orientSegment(r, _tmpA, _tmpB, false);
       r.visible = dist > 0.05;
       r.scale.set(1.0 + 0.3 * Math.sin(t * 24 + i), dist, 1.0);
-      r.material.opacity = (1.0 - tailP) * 0.92;
+      r.material.opacity = (1.0 - tailP) * .66;
     });
 
     const hitP = clamp01((p - 0.42) / 0.58);
@@ -1756,7 +1803,7 @@ export class PowersAndTrapsFX {
       const pulse = 0.94 + 0.08 * Math.sin(t * 10.0);
       fx.bellSprite.scale.setScalar((0.8 + 0.35 * s.shieldIntensity) * pulse);
       fx.bellSprite.rotation.z = t * 0.8;
-      fx.bellSprite.material.opacity = s.shieldIntensity * 0.85;
+      fx.bellSprite.material.opacity = s.shieldIntensity * .33;
       fx.bellDome.scale.setScalar(0.92 + 0.12 * s.shieldIntensity);
       fx.bellDome.material.opacity = s.shieldIntensity * 0.26 * pulse;
     }
@@ -1848,12 +1895,14 @@ export class PowersAndTrapsFX {
     const dist = orientSegment(fx.ribbonViolet, s.swordOrigin, streamTip, false);
     fx.ribbonViolet.visible = dist > 0.05;
     fx.ribbonViolet.scale.set(0.75 + 0.35 * p, dist, 0.75 + 0.35 * p);
-    fx.ribbonViolet.rotateY(t * 7.5);
+    fx.ribbonViolet.material.opacity = .37;
+    fx.ribbonViolet.rotateY(t * 3.4);
 
     orientSegment(fx.ribbonCyan, s.swordOrigin, streamTip, false);
     fx.ribbonCyan.visible = dist > 0.05;
     fx.ribbonCyan.scale.set(0.7 + 0.3 * p, dist, 0.7 + 0.3 * p);
-    fx.ribbonCyan.rotateY(-t * 6.5);
+    fx.ribbonCyan.material.opacity = .31;
+    fx.ribbonCyan.rotateY(-t * 2.8);
 
     const cocoonAmt = clamp01((p - 0.25) / 0.75);
     fx.cocoonGroup.visible = cocoonAmt > 0.01;
@@ -1866,11 +1915,14 @@ export class PowersAndTrapsFX {
         const tighten = 1.45 - local * 0.55;
         c.scale.setScalar(tighten);
         c.rotation.z = t * (4.0 + i * 0.6) * (i % 2 === 0 ? 1 : -1);
-        c.material.opacity = local * 0.9;
+        c.material.opacity = local * (i > 4 ? .30 : .58);
+        c.position.y = .27 + .215 * i;
+        c.rotation.z = .11 * Math.sin((t + i) * 2.2) * (1 - local);
       });
       fx.vfxSilk.scale.setScalar(0.5 + cocoonAmt * 0.75);
       fx.vfxSilk.rotation.z = Math.sin(t * 5.0) * 0.15;
-      fx.vfxSilk.material.opacity = cocoonAmt * 0.85;
+      fx.vfxSilk.position.set(0, .91, -.48);
+      fx.vfxSilk.material.opacity = cocoonAmt * .24;
     }
   }
 
@@ -1959,10 +2011,10 @@ export class PowersAndTrapsFX {
       fx.frostCone.material.opacity = bInt * 0.45;
 
       fx.blizzardCard.position.copy(s.iceTarget);
-      fx.blizzardCard.position.z += 0.2;
+      fx.blizzardCard.position.z -= .39;
       fx.blizzardCard.rotation.z = t * 4.5;
-      fx.blizzardCard.scale.setScalar(0.75 + 0.45 * bInt);
-      fx.blizzardCard.material.opacity = bInt * 0.85;
+      fx.blizzardCard.scale.setScalar(.45 + .22 * bInt);
+      fx.blizzardCard.material.opacity = bInt * .36;
 
       fx.iceShards.forEach((sh, i) => {
         const a = (i / 16) * Math.PI * 2 + t * 3.8;
@@ -2079,25 +2131,22 @@ export class PowersAndTrapsFX {
       fx.gourdMat.emissive.setHex(0x52168a).lerp(_tmpColor.setHex(0x700c99), c);
       fx.gourdMat.emissiveIntensity = 0.55 + s.vortexIntensity * 0.75 + c * 0.4;
       fx.gourdAura.material.color.setHex(c > 0.4 ? 0x8e1aff : 0xd478ff);
-      fx.gourdAura.material.opacity = 0.45 + s.vortexIntensity * 0.45;
+      fx.gourdAura.material.opacity = .19 + s.vortexIntensity * .28;
     }
 
     const vInt = s.vortexIntensity;
     const showVortex = vInt > 0.005;
     fx.vortexGroup.visible = showVortex;
-    fx.vfxSwirl.visible = showVortex;
+    fx.vfxSwirl.visible = false;
     if (showVortex) {
       const dist = orientSegment(fx.vortexGroup, s.pos, s.targetPos, false);
       fx.vortexGroup.visible = dist > 0.05;
       fx.vortexGroup.scale.set(0.45 + 0.75 * vInt, dist, 0.45 + 0.75 * vInt);
       fx.vortexGroup.rotateY(t * 10.0);
-      fx.funnelOuter.material.opacity = vInt * 0.34;
+      fx.funnelOuter.material.opacity = vInt * .18;
+      fx.vortexRibbons.forEach((r,i) => { r.material.opacity = vInt * (.45 - .10 * i); });
       fx.funnelOuter.material.color.setHex(s.corrupted > 0.4 ? 0x6b12b8 : 0xb24dff);
 
-      fx.vfxSwirl.position.lerpVectors(s.pos, s.targetPos, 0.28);
-      fx.vfxSwirl.rotation.z = -t * 7.5;
-      fx.vfxSwirl.scale.setScalar((0.75 + 0.65 * vInt) * (0.95 + 0.1 * Math.sin(t * 10)));
-      fx.vfxSwirl.material.opacity = vInt * 0.88;
 
       fx.vortexParticles.forEach((m, i) => {
         m.visible = true;
@@ -2141,15 +2190,21 @@ export class PowersAndTrapsFX {
     fx.lotusGroup.visible = s.lotusVisible;
     if (s.lotusVisible) {
       fx.lotusGroup.position.copy(s.lotusPos);
-      fx.lotusGroup.rotation.y = t * 0.9;
+      fx.lotusSprite.visible = !s.paperLotus;
+      fx.paperStem.visible = s.paperLotus;
+      fx.paperSeed.visible = s.paperLotus;
+      fx.lotusGroup.rotation.y = s.paperLotus ? 0.12 + s.bloomProgress * 0.65 : t * 0.9;
+      fx.lotusGroup.scale.setScalar(s.paperLotus ? 0.35 + s.bloomProgress * 0.28 : 1);
       const b = s.bloomProgress;
       const openAngle = THREE.MathUtils.lerp(0.22, 1.22, b);
       fx.petals.forEach((p, i) => {
         p.rotation.x = openAngle + 0.06 * Math.sin(t * 4.0 + i);
         p.scale.setScalar(0.65 + 0.55 * b);
+        p.material.emissiveIntensity = s.paperLotus ? 0.16 + 0.21 * b : 0.75;
+        p.material.opacity = s.paperLotus ? 1 : 0.9;
       });
       fx.lotusGlow.scale.setScalar(0.75 + 1.15 * b + 0.12 * Math.sin(t * 6.0));
-      fx.lotusGlow.material.opacity = 0.35 + 0.55 * b;
+      fx.lotusGlow.material.opacity = s.paperLotus ? 0.02 + 0.20 * b : 0.35 + 0.55 * b;
     }
 
     const op = s.orbsProgress;
@@ -2158,12 +2213,16 @@ export class PowersAndTrapsFX {
       fx.orbsGroup.position.copy(s.orbsCenter);
       const rad = THREE.MathUtils.lerp(0.4, 2.85, op);
       for (let i = 0; i < 7; i++) {
-        const a = (i / 7) * Math.PI * 2 + t * 1.35 + Math.PI * 0.5;
+        const a = (i / 7) * Math.PI * 2 + (s.paperLotus ? op * 0.68 : t * 1.35) + Math.PI * 0.5;
         const ox = Math.cos(a) * rad;
         const oy = Math.sin(a) * rad;
         const oz = Math.sin(a * 2.0 + t * 2.0) * 0.32;
         fx.orbs[i].position.set(ox, oy, oz);
-        fx.orbs[i].scale.setScalar(0.35 + 0.85 * op);
+        const appear = s.paperLotus ? clamp01((op - i * 0.097) * 3.2) : op;
+        const orb = fx.orbs[i];
+        orb.visible = appear > 0.005;
+        orb.scale.setScalar(s.paperLotus ? (0.16 + 0.55 * op) * appear : 0.35 + 0.85 * op);
+        orb.children[0].material.opacity = s.paperLotus ? 0.16 * appear : 0.65;
         fx.crestPos[i * 3] = ox;
         fx.crestPos[i * 3 + 1] = oy;
         fx.crestPos[i * 3 + 2] = oz;
@@ -2173,7 +2232,7 @@ export class PowersAndTrapsFX {
       fx.crestPos[7 * 3 + 1] = fx.crestPos[1];
       fx.crestPos[7 * 3 + 2] = fx.crestPos[2];
       fx.crestLine.geometry.attributes.position.needsUpdate = true;
-      fx.crestLine.material.opacity = clamp01((op - 0.25) * 1.4) * 0.9;
+      fx.crestLine.material.opacity = s.paperLotus ? clamp01((op - 0.74) * 4) * 0.54 : clamp01((op - 0.25) * 1.4) * 0.9;
     }
 
     const rp = s.rainbowProgress;
