@@ -171,12 +171,12 @@ export const CAMERA_SHOTS = [
   shot(132, 137, 'Empty gate tracks an invisible approach', [118, 1.43, 6.6], [122.04, 2.1, 7.2], [120.2, 1.17, 0.56], [123.15, 1.48, 0.56], 42, 38, 0.0),
   shot(137, 142.5, 'Powder follows the wrong silhouette', [125.63, 2.4, 8.15], [130.54, 2.67, 7.21], [128.5, 1.44, -0.57], [130.8, 1.72, -0.44], 42, 37, 0.0),
   shot(142.5, 148, 'Decoy watches the collision from foreground', [127.9, 2.43, 8.1], [129.44, 2.83, 8.37], [131.0, 1.8, -0.18], [131.6, 1.56, -0.33], 43, 42, 0.065),
-  shot(148, 153, 'Ruyi heist with sleeping guard behind', [137.75, 2.78, 4.85], [136.89, 2.47, 4.08], [135.88, 1.45, -1.68], [136.12, 1.41, -1.69], 39, 37, 0.0),
-  shot(153, 158, 'Release reveals relatives in depth', [132.94, 1.93, 7.73], [130.85, 2.82, 9.48], [131.35, 1.4, 0.51], [129.65, 1.56, 0.37], 42, 43, 0.036),
+  shot(148, 153, 'Ruyi handoff clear of altar', [139.75, 2.55, 3.45], [139.30, 2.72, 4.15], [136.85, 1.23, -1.66], [136.1, 1.42, -1.12], 40, 42, 0.0),
+  shot(153, 158, 'Release reveals relatives across the floor', [129.50, 3.85, 10.75], [129.05, 3.55, 12.40], [129.05, 1.36, 0.70], [127.75, 1.53, 1.15], 47, 45, 0.0),
 
   // 柒 · Villains flank the bow; breadth for the six approaches, low cauldron threat.
   shot(158, 164, 'Qiwa bows between his captors', [191.95, 2.18, 9.73], [193.32, 2.18, 8.13], [195.14, 1.86, 1.45], [194.55, 1.67, 1.54], 45, 40, 0.0),
-  shot(164, 170.5, 'Wide vortex opens the approach lane', [191.32, 3.85, 12.14], [192.7, 3.62, 11.82], [194.25, 1.92, 1.49], [195.04, 2.06, 1.42], 44, 44, 0.031),
+  shot(164, 170.5, 'Wide vortex opens the staggered approach', [190.3, 5.15, 14.1], [191.38, 4.55, 13.2], [192.90, 1.55, 1.25], [193.65, 1.65, 1.55], 47, 45, 0.031),
   shot(170.5, 179, 'Diagonal funnel reveals the last holdout', [196.4, 4.53, 12.52], [197.77, 3.2, 10.68], [194.85, 2.29, 1.5], [196.47, 2.14, 1.68], 45, 40, 0.061),
   shot(179, 188, 'Low furnace and locked captor silhouettes', [195.5, 3.85, 8.36], [196.1, 2.91, 8.18], [195.16, 3.09, -0.7], [195.02, 2.87, -0.85], 42, 38, 0.037),
 
@@ -190,7 +190,7 @@ export const CAMERA_SHOTS = [
   shot(207.83, 214, 'Seven brothers land in a clear fan', [194.4, 4.55, 11.75], [195, 3.15, 12.7], [195, 3.9, -0.7], [195, 1.96, 0.15], 43, 49, 0.055),
 
   // 玖 · Hero line converges, mountain is earned in wide, fused hero owns the close.
-  shot(214, 221, 'Seven versus three across the chasm', [193.55, 2.88, 14.18], [192.95, 3.62, 13.52], [194.9, 1.96, 1.02], [195.04, 2.12, 1.02], 46, 44, 0.035),
+  shot(214, 221, 'Seven clear silhouettes versus three across the chasm', [192.30, 4.35, 15.80], [192.75, 4.65, 15.60], [193.55, 1.45, 1.2], [193.95, 1.66, 1.3], 44, 44, 0.024),
   shot(221, 228, 'Seven rising tracks reveal seal mountain', [198.63, 3.6, 13.45], [197.6, 6.2, 16.1], [195, 2.17, -0.35], [195.14, 4.91, -1.19], 46, 47, 0.068),
   shot(228, 234.5, 'Fused hero against summit sky', [191.9, 6.62, 9.78], [193.48, 7.56, 8.39], [195.07, 7.2, 0.26], [195.12, 7.7, 0.19], 42, 40, 0.0),
   shot(234.5, 240, 'Still silhouette and complete seal', [193.82, 7.5, 10.25], [196.1, 7.86, 16.7], [195.09, 7.49, 0.07], [195, 5.25, -1.18], 41, 46, 0.0),
