@@ -141,7 +141,7 @@ export const CAMERA_SHOTS = [
   shot(26, 31, 'Red gourd drops into clearing', [-2.8, 2.4, 6.6], [-3.2, 3.3, 11.2], [-0.5, 2.7, 0.45], [1, 2.6, 0.5], 35, 44, 0.1),
   shot(31, 37.5, 'Giant and scattering attackers', [5.6, 2.25, 12.3], [8.5, 4.8, 14.6], [5.7, 2.6, 1.4], [8.0, 3.4, 1.3], 46, 50, 0.21),
   shot(37.5, 42.5, 'Diagonal chase across mire lip', [60, 5.4, 11.6], [62.2, 4.4, 9.8], [63.6, 1.55, 0.25], [65.25, 1.4, 0.35], 47, 42),
-  shot(42.5, 47.5, 'Waterline struggle and Snake hold', [63.5, 2.15, 6.7], [63.7, 1.85, 5.9], [66, 1.42, 0.28], [66.0, 1.25, 0.34], 38, 38, 0.045),
+  shot(42.5, 47.5, 'Waterline struggle and Snake hold', [63.5, 2.15, 7.3], [63.7, 1.95, 6.65], [65.77, 1.44, 0.28], [65.73, 1.31, 0.34], 41, 40, 0.045),
   shot(47.5, 52, 'Bats close the trap from above', [67, 4.45, 8.5], [66.8, 3.3, 8.2], [65.0, 1.15, 0.4], [65.1, 1.05, 0.4], 40, 37, 0.08),
 
   // 叁 · Search, threat, fracture the gaze, then follow the sacrificial fall.
@@ -156,7 +156,7 @@ export const CAMERA_SHOTS = [
   shot(80.5, 86, 'Frontal clash lets needles cross frame', [125.2, 3.9, 9.2], [126.2, 2.55, 8.4], [127.0, 2, -0.35], [128.7, 1.85, -0.4], 45, 40, 0.12),
   shot(86, 91.5, 'Low mirror vault then landing', [130.1, 2.4, 8.2], [133.6, 3.2, 8.0], [133.5, 2.4, -1.3], [134.2, 2.2, -1.55], 44, 41, 0.12),
   shot(91.5, 93.4, 'Silk challenge, readable source and target', [134.6, 2.75, 7.3], [134.5, 2.65, 7.1], [132.55, 1.7, -0.5], [132.55, 1.7, -0.5], 38, 38),
-  shot(93.4, 97, 'Binding recoil two-shot', [129.7, 2.55, 6.3], [129.4, 2.25, 6.0], [132.35, 1.65, -0.35], [132.05, 1.55, -0.3], 37, 36),
+  shot(93.4, 97, 'Binding recoil two-shot', [129.7, 2.55, 6.3], [129.4, 2.25, 6.0], [132.35, 1.65, -0.35], [132.05, 1.55, -0.3], 42, 42),
   shot(97, 102, 'Captured tableau with Scorpion behind', [128.5, 2.8, 8.2], [128.85, 3.4, 9.5], [131.45, 1.65, -0.55], [131.55, 1.7, -0.5], 38, 42),
 
   // 伍 · Paired attacks, then contrast a downward wine insert with freezing resistance.
@@ -189,7 +189,7 @@ export const CAMERA_SHOTS = [
   // 玖 · Hero line converges, mountain is earned in wide, fused hero owns the close.
   shot(214, 221, 'Seven versus three across the chasm', [192.2, 3.25, 13.7], [192.8, 3.85, 12.6], [194.8, 2.35, 0.8], [195.1, 2.25, 0.85], 46, 44, 0.08),
   shot(221, 228, 'Seven rising tracks reveal seal mountain', [198.7, 3.9, 12.4], [197.4, 6.3, 16.8], [195, 2.4, -0.6], [195, 4.9, -1.35], 46, 48, 0.18),
-  shot(228, 234.5, 'Fused hero against summit sky', [192.4, 6.7, 8.8], [193.5, 7.7, 7.65], [195.05, 6.5, 0.35], [195.15, 7.02, 0.15], 37, 35),
+  shot(228, 234.5, 'Fused hero against summit sky', [192.4, 6.7, 9.3], [193.5, 7.7, 8.65], [195.05, 7.32, 0.35], [195.15, 7.94, 0.15], 41, 40),
   shot(234.5, 240, 'Still silhouette and complete seal', [196.15, 7.6, 17.8], [196.15, 7.6, 17.8], [195, 5.1, -1.45], [195, 5.1, -1.45], 46, 46),
 ];
 

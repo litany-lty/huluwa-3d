@@ -1222,10 +1222,13 @@ export class FilmDirector {
         { a: actors.liuwa, x: 193.8, y: 2.1, z: 1.45 },
         { a: actors.qiwa,  x: 194.5, y: 1.2, z: 1.90 },
       ];
-      heroes.forEach((h, i) => {
+      const blocking = heroes.map((h, i) => {
         const depth = i % 2 ? -0.66 : 0.50;
         const approach = (1 - advance) * (0.65 + 0.13 * (6 - i));
-        h.a?.setVisible(true).setPosition(h.x - approach, h.y, h.z + depth).setFacing(1).setCorrupted(0)
+        return [h.x - approach, h.y, h.z + depth];
+      });
+      heroes.forEach((h, i) => {
+        h.a?.setVisible(true).setPosition(...blocking[i]).setFacing(1).setCorrupted(0)
           .setPose(advance < 0.58 ? 'run' : 'cast')
           .setPhysicalBeat({ lean: 0.17 * advance * (1 - resolve), still: 0.78 * resolve });
       });
@@ -1243,8 +1246,10 @@ export class FilmDirector {
       });
 
       if (t < 217.8) {
-        fx?.setSiwaFire({ origin: [193.2, 2.8, 0.69], target: [197.5, 1.6, 1.55], intensity: 0.75 });
-        fx?.setWuwaWater({ origin: [193.8, 1.8, 2.25], target: [197.4, 1.3, 1.65], intensity: 0.75 });
+        const [fireX, fireY, fireZ] = blocking[3];
+        const [waterX, waterY, waterZ] = blocking[4];
+        fx?.setSiwaFire({ origin: [fireX + 0.4, fireY + 1.0, fireZ], target: [197.5, 1.6, 1.55], intensity: 0.75 });
+        fx?.setWuwaWater({ origin: [waterX + 0.4, waterY + 1.0, waterZ], target: [197.4, 1.3, 1.65], intensity: 0.75 });
       }
 
       const villains = [
