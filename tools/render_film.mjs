@@ -48,7 +48,9 @@ process.on('exit', () => {
 async function waitJson() {
   for (let i = 0; i < 100; i++) {
     if (chromeError) throw chromeError;
-    if (chrome.exitCode !== null) throw new Error(`Chrome exited before CDP started (${chrome.exitCode}).`);
+    if (chrome.exitCode !== null || chrome.signalCode !== null) {
+      throw new Error(`Chrome exited before CDP started (${chrome.exitCode ?? chrome.signalCode}).`);
+    }
     try {
       const port = PORT || +fs.readFileSync(path.join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0];
       const r = await fetch(`http://127.0.0.1:${port}/json/list`);

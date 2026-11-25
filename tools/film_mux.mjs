@@ -22,7 +22,7 @@ export function muxArgs(video, master, out, { start, end }, fps, sr) {
     '-y', '-v', 'error', '-i', video, '-i', master,
     '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy',
     '-af', `atrim=start_sample=${firstSample}:end_sample=${endSample},asetpts=PTS-STARTPTS`,
-    '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out,
+    '-c:a', 'aac', '-b:a', '192k', '-movie_timescale', '1000000', '-movflags', '+faststart', out,
   ];
 }
 
