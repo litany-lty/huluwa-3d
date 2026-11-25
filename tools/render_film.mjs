@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { once } from 'node:events';
+import { openCdp, watchChild } from './render_transport.mjs';
 import { DEFAULT_MASTER, frameRange, muxArgs, checkMaster } from './film_mux.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
@@ -30,18 +30,24 @@ const chrome = spawn(CHROME, [
   ...(process.platform === 'darwin' ? ['--use-angle=metal'] : ['--enable-unsafe-swiftshader']), '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--hide-scrollbars',
   '--mute-audio', `--window-size=${W},${H}`, 'about:blank',
 ], { stdio: 'ignore' });
+const children = new Set([chrome]);
 let chromeError;
 chrome.on('error', (err) => { chromeError = err; });
 async function closeBrowser() {
   if (chrome.exitCode === null && chrome.signalCode === null && !chromeError) {
-    const done = once(chrome, 'close');
-    chrome.kill();
-    await done;
+    // Chrome can take a moment to remove its profile lock. Never wait forever.
+    await new Promise((resolve) => {
+      const timer = setTimeout(() => { chrome.kill('SIGKILL'); resolve(); }, 3000);
+      chrome.once('close', () => { clearTimeout(timer); resolve(); });
+      chrome.kill();
+    });
   }
   fs.rmSync(profile, { recursive: true, force: true });
 }
 process.on('exit', () => {
-  if (chrome.exitCode === null && chrome.signalCode === null) chrome.kill();
+  for (const child of children) {
+    if (child.exitCode === null && child.signalCode === null && child.pid) child.kill();
+  }
   try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
 });
 
@@ -53,7 +59,7 @@ async function waitJson() {
     }
     try {
       const port = PORT || +fs.readFileSync(path.join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0];
-      const r = await fetch(`http://127.0.0.1:${port}/json/list`);
+      const r = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(300) });
       const l = await r.json();
       const p = l.find((x) => x.type === 'page');
       if (p) return p.webSocketDebuggerUrl;
@@ -63,13 +69,8 @@ async function waitJson() {
   throw new Error('chrome did not start');
 }
 const ws = new WebSocket(await waitJson());
-await new Promise((r) => (ws.onopen = r));
-let id = 0; const pend = new Map();
-ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && pend.has(d.id)) { pend.get(d.id)(d); pend.delete(d.id); } };
-const send = (method, params = {}) => new Promise((res, rej) => {
-  const i = ++id; pend.set(i, (d) => (d.error ? rej(new Error(JSON.stringify(d.error))) : res(d.result)));
-  ws.send(JSON.stringify({ id: i, method, params }));
-});
+const { opened, send } = openCdp(ws);
+await opened;
 const evalJs = async (expr) => {
   const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
   if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
@@ -111,25 +112,25 @@ fs.mkdirSync(path.dirname(OUT), { recursive: true });
 const VIDEO = VIDEO_ONLY ? OUT : OUT.replace(/\.mp4$/, '_video.mp4');
 const ff = spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', String(FPS), '-i', '-',
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(FPS), VIDEO], { stdio: ['pipe', 'inherit', 'inherit'] });
-const ffDone = once(ff, 'close');
+children.add(ff);
+const encoder = watchChild(ff, 'Video encoder');
 const frames = bounds.end;
 const t0 = Date.now();
 for (let f = bounds.start; f < frames; f++) {
   await evalJs(`window.__HULUWA_APP__.renderAt(${(f / FPS).toFixed(4)}), 1`);
   const buf = await shot();
-  if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
+  await encoder.write(buf);
   if (f % 120 === 0) {
     const el = (Date.now() - t0) / 1000, done = f - bounds.start + 1;
     console.log(`frame ${f}/${frames}  ${(f / FPS).toFixed(1)}s  elapsed ${el.toFixed(0)}s  eta ${(el / done * (frames - f) / 60).toFixed(1)}min`);
   }
 }
 ff.stdin.end();
-const [encodeStatus] = await ffDone;
-if (encodeStatus !== 0) throw new Error(`Video encoding failed (${encodeStatus}).`);
+await encoder.finish();
 if (!VIDEO_ONLY) {
   const mux = spawn('ffmpeg', muxArgs(VIDEO, AUDIO, OUT, bounds, FPS, sr), { stdio: 'inherit' });
-  const [muxStatus] = await once(mux, 'close');
-  if (muxStatus !== 0) throw new Error(`Audio mux failed (${muxStatus}).`);
+  children.add(mux);
+  await watchChild(mux, 'Audio mux').finish();
 }
 console.log(VIDEO_ONLY ? 'done (video only) ->' : 'done ->', OUT);
 ws.close();
